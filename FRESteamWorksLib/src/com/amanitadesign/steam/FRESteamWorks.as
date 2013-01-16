@@ -35,10 +35,37 @@ package com.amanitadesign.steam
 			{
 				case SteamConstants.RESPONSE_OnUserStatsReceived:
 					trace("RESPONSE_OnUserStatsReceived");
-				break;
+					break;
 				case SteamConstants.RESPONSE_OnAchievementStored:
 					trace("RESPONSE_OnAchievementStored");
-				break;
+					break;
+				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
+					trace("RESPONSE_EnumeratePublishedWorkshopFiles setting data");
+					sEvent.data = this.getEnumeratedWorkshopFiles();
+					//sEvent.data = this.getEnumeratedWorkshopFilesLength();
+					break;
+				case SteamConstants.RESPONSE_GetPublishedFileDetails:
+					trace("RESPONSE_GetPublishedFileDetails setting data");
+					
+					if ( isBatch )
+					{
+						batchPublishedFileDetails.push(getPublishedFileDetailsResult());
+						currentBatchIndex++;
+						if ( currentBatchIndex < batchPublishedFileIds.length )
+						{
+							getPublishedFileDetails(batchPublishedFileIds[currentBatchIndex]);
+							return; //dont dispatch an individual get published file details during batch get
+						}
+						else
+						{
+							isBatch = false;
+							sEvent = new SteamEvent(SteamEvent.STEAM_RESPONSE,  SteamConstants.RESPONSE_BatchGetPublishedFileDetails, response);
+							sEvent.data = batchPublishedFileDetails;
+						}
+					}
+					else
+						sEvent.data = this.getPublishedFileDetailsResult();
+					break;
 			}
 			dispatchEvent(sEvent);
 		}
@@ -142,6 +169,51 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_FileDelete", fileName) as Boolean;
 		}
 		
+		public function fileShare(fileName:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_FileShare", fileName) as Boolean;
+		}
+		
+		public function publishWorkshopFile(fileName:String, previewFile:String, title:String, description:String, longDescription:String, visibility:uint, tags:Array, type:uint):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_PublishWorkshopFile", fileName, previewFile, title, description, longDescription, visibility,tags,type) as Boolean;
+		}
+		
+		/**
+		 * Enumerates publically shared Workshop files that match filter criteria.
+		 * For beta testing, you must change the beta-testing visibility under the Workshop tab for results to show up.
+		 * @param	enumerationType WorkshopEnumerationType
+		 * @param	startIndex
+		 * @param	count
+		 * @param	days
+		 * @param	pTags
+		 * @param	uTags
+		 * @return
+		 */
+		public function enumeratePublishedWorkshopFiles(enumerationType:uint, startIndex:uint, count:uint, days:uint, pTags:Array,uTags:Array):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_EnumeratePublishedWorkshopFiles", enumerationType, startIndex, count, days, pTags, uTags) as Boolean;
+		}
+		
+		public function getPublishedFileDetails(publishedFileId:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_GetPublishedFileDetails", publishedFileId) as Boolean;
+		}
+		
+		private var batchPublishedFileIds:Array;
+		private var batchPublishedFileDetails:Array;
+		private var currentBatchIndex:int = 0;
+		private var isBatch:Boolean = false;
+		
+		public function batchGetPublishedFileDetails(publishedFileIds:Array):void
+		{
+			batchPublishedFileIds = publishedFileIds;
+			batchPublishedFileDetails = [];
+			currentBatchIndex = 0;
+			isBatch = true;
+			getPublishedFileDetails(batchPublishedFileIds[currentBatchIndex]);
+		}
+		
 		public function isCloudEnabledForApp():Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_IsCloudEnabledForApp") as Boolean;
@@ -150,6 +222,20 @@ package com.amanitadesign.steam
 		public function setCloudEnabledForApp(enabled:Boolean):Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_SetCloudEnabledForApp", enabled) as Boolean;
+		}
+		
+		//protected functions to get the result of async call results
+		protected function getEnumeratedWorkshopFilesLength():int
+		{
+			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesLength") as int;
+		}
+		protected function getEnumeratedWorkshopFiles():Array
+		{
+			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFiles") as Array;
+		}
+		protected function getPublishedFileDetailsResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetPublishedFileDetailsResult") as Object;
 		}
 	}
 }
