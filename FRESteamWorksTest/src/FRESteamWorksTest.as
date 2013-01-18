@@ -5,9 +5,15 @@ package
 	import com.amanitadesign.steam.RemoteStoragePublishedFileVisibility;
 	import com.amanitadesign.steam.SteamConstants;
 	import com.amanitadesign.steam.SteamEvent;
+	import com.amanitadesign.steam.SteamResult;
+	import com.amanitadesign.steam.UGCResult;
 	import com.amanitadesign.steam.WorkshopEnumerationType;
 	import flash.display.Bitmap;
+	import flash.display.BitmapData;
+	import flash.display.Loader;
 	import flash.events.Event;
+	import flash.events.IOErrorEvent;
+	import flash.events.SecurityErrorEvent;
 	import flash.text.TextFormat;
 
 	import flash.display.SimpleButton;
@@ -21,11 +27,13 @@ package
 		private var Steamworks:FRESteamWorks = new FRESteamWorks();
 		public var tf:TextField;
 		
-		[Embed(source = "../bin/test.png")]
+		[Embed(source = "../bin/mylevel1.png")]
 		private var _testImg:Class;
 		[Embed(source = "../bin/preview.jpg")]
 		private var _previewImg:Class;
 		
+		private var publishedFileDetails:Array; //result from batchGetPublishedFileDetails
+		private var ugcDownloadResult:UGCResult;
 		
 		public function FRESteamWorksTest():void 
 		{
@@ -43,6 +51,8 @@ package
 			addButton("Share Image", handleFileShare);
 			addButton("Publish Image", handlePublishWorkshopFile);
 			addButton("Enumerate Workshop Files", handleEnumeratePublishedWorkshopFiles);
+			addButton("Dowload UGC File", handleUGCDownload);
+			addButton("Read UGC File", handleUGCRead);
 
 			Steamworks.addEventListener(SteamEvent.STEAM_RESPONSE, onSteamResponse);
 			
@@ -136,12 +146,12 @@ package
 				//log("setCloudEnabledForApp(false) == "+Steamworks.setCloudEnabledForApp(false) );
 				log("setCloudEnabledForApp(true) == "+Steamworks.setCloudEnabledForApp(true) );
 				log("isCloudEnabledForApp() == "+Steamworks.isCloudEnabledForApp() );
-				if (Steamworks.fileExists('test.png')) {
-					log("fileExists test.png");
-					log("readFileFromCloud('test.png') == "+readFileFromCloud('test.png') );
+				if (Steamworks.fileExists('mylevel1.png')) {
+					log("fileExists mylevel1.png");
+					log("readFileFromCloud('mylevel1.png') == "+readFileFromCloud('mylevel1.png') );
 				} else {
 					var testImg:Bitmap = new _testImg();
-					log("writeFileToCloud('test.png','click') == "+writeBitmapToCloud('test.png', testImg));
+					log("writeFileToCloud('mylevel1.png','click') == "+writeBitmapToCloud('mylevel1.png', testImg));
 				}
 			}
 		}
@@ -160,24 +170,69 @@ package
 				null)
 		}
 		
+		public function handleUGCDownload(e:Event = null):void
+		{
+			if ( publishedFileDetails == null)
+			{
+				log("You must enumerate files first");
+				return;
+			}
+			if ( publishedFileDetails.length == 0 )
+			{
+				log("The Enumeration returned 0 results, nothing to dowload");
+				return;
+			}
+				
+			log("handleUGCDownload " + publishedFileDetails[0].file + " " +
+				Steamworks.UGCDownload(publishedFileDetails[0].file)
+			);
+		}
+		
+		private var loader:Loader = new Loader();
+		public function handleUGCRead(e:Event = null):void
+		{
+			if ( ugcDownloadResult == null)
+			{
+				log("You must download the file first");
+				return;
+			}
+			var ba:ByteArray = new ByteArray();
+			ba.position = 0;
+			ba.length = ugcDownloadResult.sizeInBytes;
+			
+				ugcDownloadResult
+			log("handleUGCRead " + ugcDownloadResult.fileName + " " +
+				Steamworks.UGCRead(ugcDownloadResult.file, ba, ugcDownloadResult.sizeInBytes)
+			);
+			
+			
+			loader.contentLoaderInfo.addEventListener(Event.INIT, onBytesLoaded);
+			loader.loadBytes(ba);
+			addChild(loader);
+		}
+		private function onBytesLoaded(e:Event):void {
+		   log(loader.width +" " + loader.height);
+		   // bitmapData.draw(loader);
+		}
+		
 		public function handleFileShare(e:Event = null):void
 		{
 			//test share
-			log("Steamworks.fileShare('test.png')  == " + Steamworks.fileShare('test.png'));
+			log("Steamworks.fileShare('mylevel1.png')  == " + Steamworks.fileShare('mylevel1.png'));
 		}
 		
 		public function handlePublishWorkshopFile(e:Event = null ):void
 		{
 			
 			// public workshop file 
-			log("Steamworks.publishWorkshopFile('test.png')  == " 
-				+ Steamworks.publishWorkshopFile('test.png',
-					"test.png", 
-					"Test20130115120pm", 
-					"testing workshop", 
-					"testing workshop publish", 
+			log("Steamworks.publishWorkshopFile('mylevel1.png')  == " 
+				+ Steamworks.publishWorkshopFile('mylevel1.png',
+					"mylevel1.png", 
+					"Jons awesome level", 
+					"This is jons awesome level.", 
+					"This is the mostest awesomeness level ever", 
 					RemoteStoragePublishedFileVisibility.k_ERemoteStoragePublishedFileVisibilityPublic, 
-					["test"], 
+					["Map"], 
 					0)
 				);
 				
@@ -199,6 +254,7 @@ package
 			
 			//log("getPublishedFileDetails " + Steamworks.getPublishedFileDetails(enumeratePublishedFileResult[0]) );
 			log("getPublishedFileDetails " + Steamworks.batchGetPublishedFileDetails(enumeratePublishedFileResult) );
+			
 		}
 
 		public function onClick(e:MouseEvent):void{
@@ -214,30 +270,36 @@ package
 		public function onSteamResponse(e:SteamEvent):void{
 			switch(e.req_type){
 				case SteamConstants.RESPONSE_OnUserStatsStored:
-					log("RESPONSE_OnUserStatsStored: "+e.response);
+					log("RESPONSE_OnUserStatsStored: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_OnUserStatsReceived:
-					log("RESPONSE_OnUserStatsReceived: "+e.response);
+					log("RESPONSE_OnUserStatsReceived: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_OnAchievementStored:
-					log("RESPONSE_OnAchievementStored: "+e.response);
+					log("RESPONSE_OnAchievementStored: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_OnUserFileShare:
-					log("RESPONSE_OnUserFileShare: "+e.response);
+					log("RESPONSE_OnUserFileShare: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
-					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data);
+					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data + " " + SteamResult.getMessage(e.response));
 					
 					//get the file details for the list
 					getPublishedFileDetails(e.data);
 					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
-					log("RESPONSE_GetPublishedFileDetails: "+e.data);
+					log("RESPONSE_GetPublishedFileDetails: "+e.data + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_BatchGetPublishedFileDetails:
-					log("RESPONSE_BatchGetPublishedFileDetails: "+e.data);
+					log("RESPONSE_BatchGetPublishedFileDetails: " + e.data) + " " + SteamResult.getMessage(e.response);
+					publishedFileDetails = e.data;
+					break;
+				case SteamConstants.RESPONSE_UGCDownload:
+					log("RESPONSE_UGCDownload: " + e.data + " " + SteamResult.getMessage(e.response));
+					ugcDownloadResult = e.data as UGCResult;
+					break;
 				default:
-					log("STEAMresponse type:"+e.req_type+" response:"+e.response);
+			log("STEAMresponse type:"+e.req_type+" response:"+e.response + " " + SteamResult.getMessage(e.response));
 			}
 		}
 		
