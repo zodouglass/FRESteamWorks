@@ -34,7 +34,9 @@ enum ResponseTypes
 	RESPONSE_OnUserFileShare,
 	RESPONSE_OnPublishWorkshopFile,
 	RESPONSE_EnumeratePublishedWorkshopFiles,
-	RESPONSE_GetPublishedFileDetails
+	RESPONSE_GetPublishedFileDetails,
+	RESPONSE_UGCDownload,
+	RESPONSE_UGCRead
 };
 enum ResponseCodes
 {
@@ -56,7 +58,9 @@ public:
 
 	//results from EnumeratePublishedWorkshopFiles
 	int32 EnumeratedWorkshopFilesLength;
-	uint64 EnumeratedWorkshopFiles[50];
+	uint64 EnumeratedWorkshopFilesResult[50];
+	//result from UGCDownload
+	RemoteStorageDownloadUGCResult_t *UGCDownloadResult;
 
 	//results from GetPublishedFileDetails
 	RemoteStorageGetPublishedFileDetailsResult_t *PublishedFileDetailsResult;
@@ -89,6 +93,10 @@ public:
 	void GetPublishedFileDetails(PublishedFileId_t unPublishedFileId);
 	void OnGetPublishedFileDetails(RemoteStorageGetPublishedFileDetailsResult_t *pCallback, bool bIOFailure );
 	CCallResult<CSteam, RemoteStorageGetPublishedFileDetailsResult_t> m_CallbackGetPublishedFileDetails;
+	
+	void UGCDownload(UGCHandle_t ugcHandle, uint32 unPriority);
+	void OnUGCDownload(RemoteStorageDownloadUGCResult_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, RemoteStorageDownloadUGCResult_t> m_CallbackUGCDownload;
 	//end workshop
 
 	void DispatchEvent( const int req_type, const int response );
@@ -124,10 +132,13 @@ extern "C" {
 	FREObject AIRSteam_FileShare(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_PublishWorkshopFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_EnumeratePublishedWorkshopFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-	FREObject AIRSteam_GetEnumeratedWorkshopFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetEnumeratedWorkshopFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetEnumeratedWorkshopFilesLength(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetPublishedFileDetailsResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UGCDownload(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetUGCDownloadResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UGCRead(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
 
 	FREObject UInt64ToFREObject( uint64 value);

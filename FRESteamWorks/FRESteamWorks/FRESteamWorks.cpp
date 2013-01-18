@@ -123,6 +123,11 @@ void CSteam::GetPublishedFileDetails(PublishedFileId_t unPublishedFileId) {
 	m_CallbackGetPublishedFileDetails.Set( hSteamAPICall, this, &CSteam::OnGetPublishedFileDetails );
 }
 
+void CSteam::UGCDownload(UGCHandle_t ugcHandle, uint32 unPriority) {
+	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->UGCDownload(ugcHandle, unPriority);
+	m_CallbackUGCDownload.Set( hSteamAPICall, this, &CSteam::OnUGCDownload );
+}
+
 void CSteam::DispatchEvent(const int req_type, const int response) {
 	FREResult res;
 	char code[5];
@@ -141,7 +146,7 @@ void CSteam::DispatchEvent(const int req_type, const int response) {
 void CSteam::OnEnumeratePublishedWorkshopFiles( RemoteStorageEnumerateWorkshopFilesResult_t *pCallback, bool bIOFailure ) {
 	//save the values returned to be retrived by the AS portation
 	for( int i=0; i < pCallback->m_nResultsReturned; i++)
-		EnumeratedWorkshopFiles[i] = pCallback->m_rgPublishedFileId[i];
+		EnumeratedWorkshopFilesResult[i] = pCallback->m_rgPublishedFileId[i];
 	g_Steam->EnumeratedWorkshopFilesLength = pCallback->m_nResultsReturned;
 	g_Steam->DispatchEvent(RESPONSE_EnumeratePublishedWorkshopFiles, pCallback->m_nResultsReturned);
 }
@@ -160,6 +165,12 @@ void CSteam::OnGetPublishedFileDetails( RemoteStorageGetPublishedFileDetailsResu
 	PublishedFileDetailsResult = pCallback;
 	//mapPublishedFileDetailsResult.insert(make_pair(pCallback->m_nPublishedFileId, *pCallback) );
 	g_Steam->DispatchEvent(RESPONSE_GetPublishedFileDetails, pCallback->m_eResult);
+}
+
+void CSteam::OnUGCDownload(RemoteStorageDownloadUGCResult_t *pCallback, bool bIOFailure ){
+	//save the result
+	UGCDownloadResult = pCallback;
+	g_Steam->DispatchEvent(RESPONSE_UGCDownload, pCallback->m_eResult);
 }
 
 void CSteam::OnUserStatsReceived( UserStatsReceived_t *pCallback ) {
@@ -432,7 +443,50 @@ extern "C" {
 		FRENewObjectFromBool((uint32_t)retVal, &result);
 		return result;
 	}
+    
+	FREObject AIRSteam_FileDelete(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		bool retVal = 0;
+		if (g_Steam && argc==1) {
+			uint32_t len = -1;
+			const uint8_t *fileName = 0;
+			if(	FREGetObjectAsUTF8(argv[0], &len, &fileName) == FRE_OK ) {
+				retVal = SteamRemoteStorage()->FileDelete((char *)fileName);
+			}
+		}
+		FRENewObjectFromBool((uint32_t)retVal, &result);
+		return result;
+	}
+    
+	FREObject AIRSteam_IsCloudEnabledForApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		bool retVal = 0;
+		if (g_Steam) {
+			retVal = SteamRemoteStorage()->IsCloudEnabledForApp();
+		}
+		FRENewObjectFromBool((uint32_t)retVal, &result);
+		return result;
+	}
+    
+	FREObject AIRSteam_SetCloudEnabledForApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		bool retVal = 0;
+		if (g_Steam && argc==1) {
+			uint32_t enabled = 0;
+			bool bEnabled;
+			if(	FREGetObjectAsBool(argv[0], &enabled) == FRE_OK ) {
+				bEnabled = (enabled!=0);
+				SteamRemoteStorage()->SetCloudEnabledForApp(bEnabled);
+				retVal = (bEnabled == SteamRemoteStorage()->IsCloudEnabledForApp());
+			}
+		}
+		FRENewObjectFromBool((uint32_t)retVal, &result);
+		return result;
 
+	}
+
+	//Steam Workshop
+	
 	FREObject AIRSteam_FileShare(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
 		
@@ -493,68 +547,45 @@ extern "C" {
 		return result;
 	}
 
+	
+	FREObject AIRSteam_GetEnumeratedWorkshopFilesLength(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		if (g_Steam )
+		{
+			FRENewObjectFromInt32((uint32_t)g_Steam->EnumeratedWorkshopFilesLength, &result);
+		}
+		return result;
+	}
+
+	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 publishedFileId = 0;
+
+		if (g_Steam &&  argc == 1)
+		{
+			publishedFileId = FREObjectToUint64(argv[0]);
+			if( publishedFileId != 0 ) 
+			{
+				g_Steam->GetPublishedFileDetails(publishedFileId);
+				FRENewObjectFromBool(true , &result);
+			}
+			else {
+				FRENewObjectFromBool(false, &result);
+			}
+		} else {
+			FRENewObjectFromBool(false, &result);
+		}
+		return result;
+	}
+
+	
 	FREObject AIRSteam_GetPublishedFileDetailsResult (FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
-		//FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
 
 		if (g_Steam )
 		{
-			/* for multiple files 
-			FRENewObject((const uint8_t*)"Array", 0, NULL, &result, NULL );
-			FRESetArrayLength( result, g_Steam->mapPublishedFileDetailsResult.size() );
-
-			//for ( int32_t i = 0; i <  g_Steam->mapPublishedFileDetailsResult.size(); i++)
-			int i = 0;
-			for (std::map<uint64,RemoteStorageGetPublishedFileDetailsResult_t>::iterator it=g_Steam->mapPublishedFileDetailsResult.begin(); it!=g_Steam->mapPublishedFileDetailsResult.end(); ++it)
-			{
-				uint64 pubfileid = it->first;
-				RemoteStorageGetPublishedFileDetailsResult_t fileDetails = it->second;
-
-				FREObject element;
-				FRENewObject((const uint8_t*)"Object", 0, NULL, &element,NULL);
-
-				FREObject m_nPublishedFileId;
-				FREObject m_nCreatorAppID;
-				FREObject m_nConsumerAppID;
-				FREObject m_rgchTitle = NULL;
-				FREObject m_rgchDescription = NULL;
-				FREObject m_hFile;
-				FREObject m_hPreviewFile;
-				FREObject m_ulSteamIDOwner;
-				FREObject m_rtimeCreated;
-				FREObject m_rtimeUpdated;
-				FREObject m_eVisibility;
-				FREObject m_bBanned;
-				FREObject m_rgchTags;
-				FREObject m_bTagsTruncated;
-				FREObject m_pchFileName;
-				FREObject m_nFileSize;
-				FREObject m_nPreviewFileSize;
-				FREObject m_rgchURL;
-				FREObject m_eFileType;
-
-				uint32_t len = -1;
-
-				// populate published file details
-
-				m_nPublishedFileId = UInt64ToFREObject(fileDetails.m_nPublishedFileId);
-				FRENewObjectFromInt32(fileDetails.m_nCreatorAppID, &m_nCreatorAppID);
-				FRENewObjectFromInt32(fileDetails.m_nConsumerAppID, &m_nConsumerAppID);
-				FRENewObjectFromUTF8(len, (const uint8_t *)fileDetails.m_rgchTitle, &m_rgchTitle);
-				FRENewObjectFromUTF8(len, (const uint8_t *)fileDetails.m_rgchDescription, &m_rgchDescription);
-
-				// fill properties of FREObject result
-				FRESetObjectProperty(element, (const uint8_t*)"publishedFileId", m_nPublishedFileId, NULL);
-				FRESetObjectProperty(element, (const uint8_t*)"creatorAppID", m_nCreatorAppID, NULL);
-				FRESetObjectProperty(element, (const uint8_t*)"consumerAppID", m_nConsumerAppID, NULL);
-				FRESetObjectProperty(element, (const uint8_t*)"title", m_rgchTitle, NULL);
-				FRESetObjectProperty(element, (const uint8_t*)"description", m_rgchDescription, NULL);
-
-				FRESetArrayElementAt( result, i, element );
-				i++;
-			}
-			*/
-
 			RemoteStorageGetPublishedFileDetailsResult_t fileDetails = *g_Steam->PublishedFileDetailsResult;
 
 			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
@@ -582,7 +613,6 @@ extern "C" {
 			uint32_t len = -1;
 
 			// populate published file details
-
 			m_nPublishedFileId = UInt64ToFREObject(fileDetails.m_nPublishedFileId);
 			FRENewObjectFromInt32(fileDetails.m_nCreatorAppID, &m_nCreatorAppID);
 			FRENewObjectFromInt32(fileDetails.m_nConsumerAppID, &m_nConsumerAppID);
@@ -602,7 +632,6 @@ extern "C" {
 			FRENewObjectFromInt32(fileDetails.m_nPreviewFileSize, &m_nPreviewFileSize);
 			FRENewObjectFromUTF8(len, (const uint8_t *)fileDetails.m_rgchURL, &m_rgchURL);
 			FRENewObjectFromInt32(fileDetails.m_eFileType, &m_eFileType);
-
 
 			// fill properties of FREObject result
 			FRESetObjectProperty(result, (const uint8_t*)"publishedFileId", m_nPublishedFileId, NULL);
@@ -624,60 +653,8 @@ extern "C" {
 			FRESetObjectProperty(result, (const uint8_t*)"previewFileSize", m_nPreviewFileSize, NULL);
 			FRESetObjectProperty(result, (const uint8_t*)"url", m_rgchURL, NULL);
 			FRESetObjectProperty(result, (const uint8_t*)"fileType", m_eFileType, NULL);
-
-			
-			
 		}
 		
-		return result;
-	}
-	
-	FREObject AIRSteam_GetEnumeratedWorkshopFilesLength(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		if (g_Steam )
-		{
-			FRENewObjectFromInt32((uint32_t)g_Steam->EnumeratedWorkshopFilesLength, &result);
-		}
-		return result;
-	}
-	FREObject AIRSteam_GetEnumeratedWorkshopFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		if (g_Steam )
-		{
-			
-			FRENewObject((const uint8_t*)"Array", 0, NULL, &result, NULL );
-			FRESetArrayLength( result, g_Steam->EnumeratedWorkshopFilesLength );
-
-			for ( int32_t i = 0; i <  g_Steam->EnumeratedWorkshopFilesLength; i++)
-			{
-				uint64 val = g_Steam->EnumeratedWorkshopFiles[i];
-				FREObject element = UInt64ToFREObject(val);
-				FRESetArrayElementAt( result, i, element );
-			}
-		}
-		return result;
-	}
-
-	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		
-		uint32_t len = -1;
-		uint64 publishedFileId = 0;
-
-		if (g_Steam &&  argc == 1)
-		{
-			publishedFileId = FREObjectToUint64(argv[0]);
-			if( publishedFileId != 0 ) 
-			{
-				g_Steam->GetPublishedFileDetails(publishedFileId);
-				FRENewObjectFromBool(true , &result);
-			}
-			else {
-				FRENewObjectFromBool(false, &result);
-			}
-		} else {
-			FRENewObjectFromBool(false, &result);
-		}
 		return result;
 	}
 
@@ -717,46 +694,120 @@ extern "C" {
 		SteamAPI_RunCallbacks();
 		return result;
 	}
-    
-	FREObject AIRSteam_FileDelete(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		bool retVal = 0;
-		if (g_Steam && argc==1) {
-			uint32_t len = -1;
-			const uint8_t *fileName = 0;
-			if(	FREGetObjectAsUTF8(argv[0], &len, &fileName) == FRE_OK ) {
-				retVal = SteamRemoteStorage()->FileDelete((char *)fileName);
-			}
-		}
-		FRENewObjectFromBool((uint32_t)retVal, &result);
-		return result;
-	}
-    
-	FREObject AIRSteam_IsCloudEnabledForApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		bool retVal = 0;
-		if (g_Steam) {
-			retVal = SteamRemoteStorage()->IsCloudEnabledForApp();
-		}
-		FRENewObjectFromBool((uint32_t)retVal, &result);
-		return result;
-	}
-    
-	FREObject AIRSteam_SetCloudEnabledForApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		bool retVal = 0;
-		if (g_Steam && argc==1) {
-			uint32_t enabled = 0;
-			bool bEnabled;
-			if(	FREGetObjectAsBool(argv[0], &enabled) == FRE_OK ) {
-				bEnabled = (enabled!=0);
-				SteamRemoteStorage()->SetCloudEnabledForApp(bEnabled);
-				retVal = (bEnabled == SteamRemoteStorage()->IsCloudEnabledForApp());
-			}
-		}
-		FRENewObjectFromBool((uint32_t)retVal, &result);
-		return result;
 
+	FREObject AIRSteam_GetEnumeratedWorkshopFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		if (g_Steam )
+		{
+			
+			FRENewObject((const uint8_t*)"Array", 0, NULL, &result, NULL );
+			FRESetArrayLength( result, g_Steam->EnumeratedWorkshopFilesLength );
+
+			for ( int32_t i = 0; i <  g_Steam->EnumeratedWorkshopFilesLength; i++)
+			{
+				uint64 val = g_Steam->EnumeratedWorkshopFilesResult[i];
+				FREObject element = UInt64ToFREObject(val);
+				FRESetArrayElementAt( result, i, element );
+			}
+		}
+		return result;
+	}
+
+	FREObject AIRSteam_UGCDownload(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 ugcHandle = 0;
+		uint32 priority = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			ugcHandle = FREObjectToUint64(argv[0]);
+			if( ugcHandle != 0 && FREGetObjectAsUint32(argv[1], &priority) == FRE_OK ) 
+			{
+				g_Steam->UGCDownload((UGCHandle_t)ugcHandle, priority);
+				FRENewObjectFromBool(true , &result);
+			}
+			else {
+				FRENewObjectFromBool(false, &result);
+			}
+		} else {
+			FRENewObjectFromBool(false, &result);
+		}
+		return result;
+	}
+
+	FREObject AIRSteam_GetUGCDownloadResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+
+		if (g_Steam )
+		{
+			RemoteStorageDownloadUGCResult_t fileDetails = *g_Steam->UGCDownloadResult;
+
+			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
+
+			FREObject m_hFile;
+			FREObject m_nAppID;
+			FREObject m_nSizeInBytes;
+			FREObject m_pchFileName;
+			FREObject m_ulSteamIDOwner;
+
+			uint32_t len = -1;
+
+			// populate published file details
+			m_hFile = UInt64ToFREObject(fileDetails.m_hFile);
+			m_nAppID = UInt64ToFREObject(fileDetails.m_nAppID);
+			FRENewObjectFromInt32(fileDetails.m_nSizeInBytes, &m_nSizeInBytes);
+			FRENewObjectFromUTF8(len, (const uint8_t *)fileDetails.m_pchFileName, &m_pchFileName);
+			m_ulSteamIDOwner = UInt64ToFREObject(fileDetails.m_ulSteamIDOwner);
+
+			// fill properties of FREObject result
+			FRESetObjectProperty(result, (const uint8_t*)"file", m_hFile, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"appID", m_nAppID, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"sizeInBytes", m_nSizeInBytes, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"fileName", m_pchFileName, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"steamIDOwner", m_ulSteamIDOwner, NULL);
+		}
+		
+		return result;
+	}
+
+	FREObject AIRSteam_UGCRead(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		int32 readResult = 0;
+		if (g_Steam && argc == 4 )
+		{
+			uint32_t len = -1;
+			uint64 ugcHandle = 0;
+			uint32 fileSize = 0;
+			uint32 offset = 0;
+
+			FREByteArray byteArray;
+			char *dataIn;
+
+
+			ugcHandle = FREObjectToUint64(argv[0]);
+			if( ugcHandle != 0
+				&& FREAcquireByteArray(argv[1], &byteArray) == FRE_OK
+				&& FREGetObjectAsUint32(argv[2], &fileSize) == FRE_OK 
+				&& FREGetObjectAsUint32(argv[3], &offset) == FRE_OK )
+			{
+				if(fileSize > 0 && fileSize <= byteArray.length) 
+				{
+					dataIn = (char *)malloc(fileSize);
+					readResult = SteamRemoteStorage()->UGCRead(ugcHandle, dataIn, fileSize, offset);
+					memcpy (byteArray.bytes, dataIn, fileSize); 
+					free(dataIn);
+					FRENewObjectFromInt32(readResult, &result);
+				}
+				FREReleaseByteArray(argv[1]);
+				
+			}
+	
+		}
+		
+		FRENewObjectFromInt32(readResult, &result);
+		return result;
 	}
 	//============================
 
@@ -784,7 +835,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 27;
+        *numFunctions = 30;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -880,9 +931,9 @@ extern "C" {
         func[22].functionData = NULL;
 		func[22].function = &AIRSteam_EnumeratePublishedWorkshopFiles;
 
-        func[23].name = (const uint8_t*) "AIRSteam_GetEnumeratedWorkshopFiles";
+        func[23].name = (const uint8_t*) "AIRSteam_GetEnumeratedWorkshopFilesResult";
         func[23].functionData = NULL;
-		func[23].function = &AIRSteam_GetEnumeratedWorkshopFiles;
+		func[23].function = &AIRSteam_GetEnumeratedWorkshopFilesResult;
 		
         func[24].name = (const uint8_t*) "AIRSteam_GetPublishedFileDetails";
         func[24].functionData = NULL;
@@ -892,10 +943,21 @@ extern "C" {
         func[25].functionData = NULL;
 		func[25].function = &AIRSteam_GetPublishedFileDetailsResult;
 
-		
 		func[26].name = (const uint8_t*) "AIRSteam_GetEnumeratedWorkshopFilesLength";
         func[26].functionData = NULL;
 		func[26].function = &AIRSteam_GetEnumeratedWorkshopFilesLength;
+
+		func[27].name = (const uint8_t*) "AIRSteam_UGCDownload";
+        func[27].functionData = NULL;
+		func[27].function = &AIRSteam_UGCDownload;
+		
+		func[28].name = (const uint8_t*) "AIRSteam_GetUGCDownloadResult";
+        func[28].functionData = NULL;
+		func[28].function = &AIRSteam_GetUGCDownloadResult;
+
+		func[29].name = (const uint8_t*) "AIRSteam_UGCRead";
+        func[29].functionData = NULL;
+		func[29].function = &AIRSteam_UGCRead;
 
         *functions = func;
     }

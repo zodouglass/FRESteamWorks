@@ -30,7 +30,7 @@ package com.amanitadesign.steam
 			var req_type:int = new int(event.code);
 			var response:int = new int(event.level);
 			var sEvent:SteamEvent = new SteamEvent(SteamEvent.STEAM_RESPONSE, req_type, response);
-			trace("handleStatusEvent: "+req_type+" "+response);
+			trace("handleStatusEvent: "+req_type+" "+response + " " + SteamResult.getMessage(response));
 			switch(req_type)
 			{
 				case SteamConstants.RESPONSE_OnUserStatsReceived:
@@ -41,7 +41,7 @@ package com.amanitadesign.steam
 					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
 					trace("RESPONSE_EnumeratePublishedWorkshopFiles setting data");
-					sEvent.data = this.getEnumeratedWorkshopFiles();
+					sEvent.data = this.getEnumeratedWorkshopFilesResult();
 					//sEvent.data = this.getEnumeratedWorkshopFilesLength();
 					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
@@ -49,7 +49,7 @@ package com.amanitadesign.steam
 					
 					if ( isBatch )
 					{
-						batchPublishedFileDetails.push(getPublishedFileDetailsResult());
+						batchPublishedFileDetails.push( new PublishedFileDetailsResult(this.getPublishedFileDetailsResult()) );
 						currentBatchIndex++;
 						if ( currentBatchIndex < batchPublishedFileIds.length )
 						{
@@ -64,7 +64,11 @@ package com.amanitadesign.steam
 						}
 					}
 					else
-						sEvent.data = this.getPublishedFileDetailsResult();
+						sEvent.data = new PublishedFileDetailsResult(this.getPublishedFileDetailsResult());
+					break;
+				case SteamConstants.RESPONSE_UGCDownload:
+					trace("RESPONSE_UGCDownload setting data");
+					sEvent.data = new UGCResult(this.getUGCDownloadResult());
 					break;
 			}
 			dispatchEvent(sEvent);
@@ -169,6 +173,18 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_FileDelete", fileName) as Boolean;
 		}
 		
+		public function isCloudEnabledForApp():Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_IsCloudEnabledForApp") as Boolean;
+		}
+		
+		public function setCloudEnabledForApp(enabled:Boolean):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_SetCloudEnabledForApp", enabled) as Boolean;
+		}
+		
+		//WORKSHOP functions
+		
 		public function fileShare(fileName:String):Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_FileShare", fileName) as Boolean;
@@ -214,28 +230,32 @@ package com.amanitadesign.steam
 			getPublishedFileDetails(batchPublishedFileIds[currentBatchIndex]);
 		}
 		
-		public function isCloudEnabledForApp():Boolean
+		public function UGCDownload(ugcHandle:String, priority:uint=0):Boolean
 		{
-			return _ExtensionContext.call("AIRSteam_IsCloudEnabledForApp") as Boolean;
+			return _ExtensionContext.call("AIRSteam_UGCDownload", ugcHandle, priority) as Boolean;
+		}
+		public function UGCRead(ugcHandle:String, byteArray:ByteArray, fileSize:uint, offset:uint=0):int
+		{
+			return _ExtensionContext.call("AIRSteam_UGCRead", ugcHandle, byteArray, fileSize, offset) as int;
 		}
 		
-		public function setCloudEnabledForApp(enabled:Boolean):Boolean
-		{
-			return _ExtensionContext.call("AIRSteam_SetCloudEnabledForApp", enabled) as Boolean;
-		}
 		
 		//protected functions to get the result of async call results
 		protected function getEnumeratedWorkshopFilesLength():int
 		{
 			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesLength") as int;
 		}
-		protected function getEnumeratedWorkshopFiles():Array
+		protected function getEnumeratedWorkshopFilesResult():Array
 		{
-			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFiles") as Array;
+			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesResult") as Array;
 		}
 		protected function getPublishedFileDetailsResult():Object
 		{
 			return _ExtensionContext.call("AIRSteam_GetPublishedFileDetailsResult") as Object;
+		}
+		protected function getUGCDownloadResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetUGCDownloadResult") as Object;
 		}
 	}
 }

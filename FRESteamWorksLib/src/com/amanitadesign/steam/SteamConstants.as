@@ -11,6 +11,7 @@ package com.amanitadesign.steam
 		public static const RESPONSE_OnPublishWorkshopFile:int = 4;
 		public static const RESPONSE_EnumeratePublishedWorkshopFiles:int = 5;
 		public static const RESPONSE_GetPublishedFileDetails:int = 6;
+		public static const RESPONSE_UGCDownload:int = 7;
 		
 		public static const RESPONSE_BatchGetPublishedFileDetails:int = 600;
 	}
