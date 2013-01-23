@@ -57,8 +57,8 @@ public:
 	~CSteam();
 
 	//results from EnumeratePublishedWorkshopFiles
-	int32 EnumeratedWorkshopFilesLength;
-	uint64 EnumeratedWorkshopFilesResult[50];
+	RemoteStorageEnumerateWorkshopFilesResult_t *EnumerateWorkshopFilesResult;
+
 	//result from UGCDownload
 	RemoteStorageDownloadUGCResult_t *UGCDownloadResult;
 
@@ -133,7 +133,6 @@ extern "C" {
 	FREObject AIRSteam_PublishWorkshopFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_EnumeratePublishedWorkshopFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetEnumeratedWorkshopFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-	FREObject AIRSteam_GetEnumeratedWorkshopFilesLength(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetPublishedFileDetailsResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_UGCDownload(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);

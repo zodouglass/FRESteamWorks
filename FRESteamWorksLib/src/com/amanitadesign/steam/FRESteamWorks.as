@@ -41,8 +41,7 @@ package com.amanitadesign.steam
 					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
 					trace("RESPONSE_EnumeratePublishedWorkshopFiles setting data");
-					sEvent.data = this.getEnumeratedWorkshopFilesResult();
-					//sEvent.data = this.getEnumeratedWorkshopFilesLength();
+					sEvent.data = new EnumerateWorkshopFilesResult(this.getEnumeratedWorkshopFilesResult());
 					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
 					trace("RESPONSE_GetPublishedFileDetails setting data");
@@ -241,13 +240,9 @@ package com.amanitadesign.steam
 		
 		
 		//protected functions to get the result of async call results
-		protected function getEnumeratedWorkshopFilesLength():int
+		protected function getEnumeratedWorkshopFilesResult():Object
 		{
-			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesLength") as int;
-		}
-		protected function getEnumeratedWorkshopFilesResult():Array
-		{
-			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesResult") as Array;
+			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesResult") as Object;
 		}
 		protected function getPublishedFileDetailsResult():Object
 		{

@@ -145,9 +145,10 @@ void CSteam::DispatchEvent(const int req_type, const int response) {
 //called when SteamRemoteStorate->EnumeratePublishedWorkshopFiles() returns asynchronously
 void CSteam::OnEnumeratePublishedWorkshopFiles( RemoteStorageEnumerateWorkshopFilesResult_t *pCallback, bool bIOFailure ) {
 	//save the values returned to be retrived by the AS portation
-	for( int i=0; i < pCallback->m_nResultsReturned; i++)
-		EnumeratedWorkshopFilesResult[i] = pCallback->m_rgPublishedFileId[i];
-	g_Steam->EnumeratedWorkshopFilesLength = pCallback->m_nResultsReturned;
+	//for( int i=0; i < pCallback->m_nResultsReturned; i++)
+	//	EnumeratedWorkshopFilesResult[i] = pCallback->m_rgPublishedFileId[i];
+	//g_Steam->EnumeratedWorkshopFilesLength = pCallback->m_nResultsReturned;
+	EnumerateWorkshopFilesResult = pCallback;
 	g_Steam->DispatchEvent(RESPONSE_EnumeratePublishedWorkshopFiles, pCallback->m_nResultsReturned);
 }
 //called when SteamRemoteStorate->FileShare() returns asynchronously
@@ -547,16 +548,6 @@ extern "C" {
 		return result;
 	}
 
-	
-	FREObject AIRSteam_GetEnumeratedWorkshopFilesLength(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
-		FREObject result;
-		if (g_Steam )
-		{
-			FRENewObjectFromInt32((uint32_t)g_Steam->EnumeratedWorkshopFilesLength, &result);
-		}
-		return result;
-	}
-
 	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
 		
@@ -699,16 +690,42 @@ extern "C" {
 		FREObject result;
 		if (g_Steam )
 		{
-			
-			FRENewObject((const uint8_t*)"Array", 0, NULL, &result, NULL );
-			FRESetArrayLength( result, g_Steam->EnumeratedWorkshopFilesLength );
+			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
 
-			for ( int32_t i = 0; i <  g_Steam->EnumeratedWorkshopFilesLength; i++)
+			FREObject m_nResultsReturned;
+			FREObject m_nTotalResultCount;
+			FREObject m_rgPublishedFileId;
+			FREObject m_rgScore;
+			//	float m_rgScore[ k_unEnumeratePublishedFilesMaxResults ];
+
+			FRENewObjectFromInt32(g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount, &m_nTotalResultCount);
+			FRENewObjectFromInt32(g_Steam->EnumerateWorkshopFilesResult->m_nResultsReturned, &m_nResultsReturned);
+
+			//PublishedFileId
+			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgPublishedFileId, NULL );
+			FRESetArrayLength( m_rgPublishedFileId, g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount );
+			
+			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgScore, NULL );
+			FRESetArrayLength( m_rgScore, g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount );
+
+			for ( int32_t i = 0; i <  g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount; i++)
 			{
-				uint64 val = g_Steam->EnumeratedWorkshopFilesResult[i];
+				uint64 val =  g_Steam->EnumerateWorkshopFilesResult->m_rgPublishedFileId[i];
 				FREObject element = UInt64ToFREObject(val);
-				FRESetArrayElementAt( result, i, element );
+				FRESetArrayElementAt( m_rgPublishedFileId, i, element );
+
+				float score =  g_Steam->EnumerateWorkshopFilesResult->m_rgScore[i];
+				FREObject scoreObj;
+				FRENewObjectFromDouble( score, &scoreObj );
+				FRESetArrayElementAt( m_rgScore, i, scoreObj );
 			}
+			
+
+			// fill properties of FREObject result
+			FRESetObjectProperty(result, (const uint8_t*)"resultsReturned", m_nResultsReturned, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"totalResultCount", m_nTotalResultCount, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"publishedFileId", m_rgPublishedFileId, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"score", m_rgScore, NULL);
 		}
 		return result;
 	}
@@ -835,7 +852,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 30;
+        *numFunctions = 29;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -943,21 +960,18 @@ extern "C" {
         func[25].functionData = NULL;
 		func[25].function = &AIRSteam_GetPublishedFileDetailsResult;
 
-		func[26].name = (const uint8_t*) "AIRSteam_GetEnumeratedWorkshopFilesLength";
+
+		func[26].name = (const uint8_t*) "AIRSteam_UGCDownload";
         func[26].functionData = NULL;
-		func[26].function = &AIRSteam_GetEnumeratedWorkshopFilesLength;
-
-		func[27].name = (const uint8_t*) "AIRSteam_UGCDownload";
-        func[27].functionData = NULL;
-		func[27].function = &AIRSteam_UGCDownload;
+		func[26].function = &AIRSteam_UGCDownload;
 		
-		func[28].name = (const uint8_t*) "AIRSteam_GetUGCDownloadResult";
-        func[28].functionData = NULL;
-		func[28].function = &AIRSteam_GetUGCDownloadResult;
+		func[27].name = (const uint8_t*) "AIRSteam_GetUGCDownloadResult";
+        func[27].functionData = NULL;
+		func[27].function = &AIRSteam_GetUGCDownloadResult;
 
-		func[29].name = (const uint8_t*) "AIRSteam_UGCRead";
-        func[29].functionData = NULL;
-		func[29].function = &AIRSteam_UGCRead;
+		func[28].name = (const uint8_t*) "AIRSteam_UGCRead";
+        func[28].functionData = NULL;
+		func[28].function = &AIRSteam_UGCRead;
 
         *functions = func;
     }

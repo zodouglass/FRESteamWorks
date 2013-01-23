@@ -1,6 +1,7 @@
 package 
 {
 	import com.adobe.images.PNGEncoder;
+	import com.amanitadesign.steam.EnumerateWorkshopFilesResult;
 	import com.amanitadesign.steam.FRESteamWorks;
 	import com.amanitadesign.steam.RemoteStoragePublishedFileVisibility;
 	import com.amanitadesign.steam.SteamConstants;
@@ -162,7 +163,7 @@ package
 			log("Steamworks.enumeratePublishedWorkshopFiles");
 				
 			Steamworks.enumeratePublishedWorkshopFiles(
-				WorkshopEnumerationType.k_EWorkshopEnumerationTypeRecent, 
+				WorkshopEnumerationType.k_EWorkshopEnumerationTypeTrending, 
 				0, 
 				10, 
 				30, 
@@ -200,7 +201,6 @@ package
 			ba.position = 0;
 			ba.length = ugcDownloadResult.sizeInBytes;
 			
-				ugcDownloadResult
 			log("handleUGCRead " + ugcDownloadResult.fileName + " " +
 				Steamworks.UGCRead(ugcDownloadResult.file, ba, ugcDownloadResult.sizeInBytes)
 			);
@@ -238,22 +238,11 @@ package
 				
 		}
 		
-		public function getPublishedFileDetails(enumeratePublishedFileResult:Array):void
+		public function getPublishedFileDetails(enumeratePublishedFileResult:EnumerateWorkshopFilesResult):void
 		{
 			
-			/*
-			if ( enumeratePublishedFileResult != null )
-			{
-				for ( var i:int = 0 ; i < enumeratePublishedFileResult.length; i++ )
-				{
-					//trace(enumeratePublishedFileResult[i]);
-					Steamworks.getPublishedFileDetails(enumeratePublishedFileResult[i]);
-				}
-			}
-			*/
-			
 			//log("getPublishedFileDetails " + Steamworks.getPublishedFileDetails(enumeratePublishedFileResult[0]) );
-			log("getPublishedFileDetails " + Steamworks.batchGetPublishedFileDetails(enumeratePublishedFileResult) );
+			log("getPublishedFileDetails " + Steamworks.batchGetPublishedFileDetails(enumeratePublishedFileResult.publishedFileId) );
 			
 		}
 
@@ -285,7 +274,7 @@ package
 					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data + " " + SteamResult.getMessage(e.response));
 					
 					//get the file details for the list
-					getPublishedFileDetails(e.data);
+					getPublishedFileDetails(e.data as EnumerateWorkshopFilesResult);
 					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
 					log("RESPONSE_GetPublishedFileDetails: "+e.data + " " + SteamResult.getMessage(e.response));
