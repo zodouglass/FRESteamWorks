@@ -33,6 +33,11 @@ package
 		[Embed(source = "../bin/preview.jpg")]
 		private var _previewImg:Class;
 		
+		//private static var TEST_FILE:String = "mylevel1.png";
+		private static var TEST_FILE:String = "test.txt";
+		
+		private var publishedWorkshopFileId:String; //result returned fro PublishWOrkshopFile
+		
 		private var publishedFileDetails:Array; //result from batchGetPublishedFileDetails
 		private var ugcDownloadResult:UGCResult;
 		
@@ -49,11 +54,17 @@ package
 			addButton("Toggle Achievement", handleWinAchievement);
 			addButton("Write Text to Cloud", handleFileWrite);
 			addButton("Write Image to Cloud", handleFileWriteImage);
-			addButton("Share Image", handleFileShare);
-			addButton("Publish Image", handlePublishWorkshopFile);
+			addButton("Share File", handleFileShare);
+			addButton("Publish File", handlePublishWorkshopFile);
+			addButton("Change Pub. File Content", handleChangePublishedFile);
+			addButton("Update Published File", handleUpdatePublishedFile);
+			
 			addButton("Enumerate Workshop Files", handleEnumeratePublishedWorkshopFiles);
+			addButton("Enumerate User Files", handleEnumerateUserPublishedFiles);
+			addButton("Enumerate Subscribed Files", handleEnumerateUserSubscribedFiles);
 			addButton("Dowload UGC File", handleUGCDownload);
 			addButton("Read UGC File", handleUGCRead);
+			addButton("Delete Published File", handleDeletePublishedFile);
 
 			Steamworks.addEventListener(SteamEvent.STEAM_RESPONSE, onSteamResponse);
 			
@@ -147,12 +158,12 @@ package
 				//log("setCloudEnabledForApp(false) == "+Steamworks.setCloudEnabledForApp(false) );
 				log("setCloudEnabledForApp(true) == "+Steamworks.setCloudEnabledForApp(true) );
 				log("isCloudEnabledForApp() == "+Steamworks.isCloudEnabledForApp() );
-				if (Steamworks.fileExists('mylevel1.png')) {
-					log("fileExists mylevel1.png");
-					log("readFileFromCloud('mylevel1.png') == "+readFileFromCloud('mylevel1.png') );
+				if (Steamworks.fileExists(TEST_FILE)) {
+					log("fileExists " + TEST_FILE);
+					log("readFileFromCloud(" + TEST_FILE + ") == "+readFileFromCloud(TEST_FILE) );
 				} else {
 					var testImg:Bitmap = new _testImg();
-					log("writeFileToCloud('mylevel1.png','click') == "+writeBitmapToCloud('mylevel1.png', testImg));
+					log("writeBitmapToCloud(" + TEST_FILE + ") == "+writeBitmapToCloud(TEST_FILE, testImg));
 				}
 			}
 		}
@@ -160,15 +171,27 @@ package
 		public function handleEnumeratePublishedWorkshopFiles(e:Event = null):void
 		{
 			//enumerate published files
-			log("Steamworks.enumeratePublishedWorkshopFiles");
+			log("Steamworks.enumeratePublishedWorkshopFiles" +
 				
 			Steamworks.enumeratePublishedWorkshopFiles(
-				WorkshopEnumerationType.k_EWorkshopEnumerationTypeTrending, 
+				WorkshopEnumerationType.k_EWorkshopEnumerationTypeRecent, 
 				0, 
-				10, 
+				2, 
 				30, 
 				null, 
 				null)
+				+ " ...");
+		}
+		
+		public function handleEnumerateUserPublishedFiles(e:Event = null):void
+		{
+			//enumerate published files
+			log("Steamworks.enumerateUserPublishedFiles" + Steamworks.enumerateUserPublishedFiles(0) + " ..." );
+		}
+		public function handleEnumerateUserSubscribedFiles(e:Event = null):void
+		{
+			//enumerate published files
+			log("Steamworks.enumerateUserSubscribedFiles" + Steamworks.enumerateUserSubscribedFiles(0) + " ..." );
 		}
 		
 		public function handleUGCDownload(e:Event = null):void
@@ -185,7 +208,7 @@ package
 			}
 				
 			log("handleUGCDownload " + publishedFileDetails[0].file + " " +
-				Steamworks.UGCDownload(publishedFileDetails[0].file)
+				Steamworks.UGCDownload(publishedFileDetails[0].file) + " ..."
 			);
 		}
 		
@@ -205,6 +228,7 @@ package
 				Steamworks.UGCRead(ugcDownloadResult.file, ba, ugcDownloadResult.sizeInBytes)
 			);
 			
+			//this is an example to read a PNG/JPG in using Loader loadBytes method
 			
 			loader.contentLoaderInfo.addEventListener(Event.INIT, onBytesLoaded);
 			loader.loadBytes(ba);
@@ -218,23 +242,62 @@ package
 		public function handleFileShare(e:Event = null):void
 		{
 			//test share
-			log("Steamworks.fileShare('mylevel1.png')  == " + Steamworks.fileShare('mylevel1.png'));
+			log("Steamworks.fileShare(" + TEST_FILE + ")  == " + Steamworks.fileShare(TEST_FILE) + " ...");
+		}
+		
+		public function handleChangePublishedFile(e:Event = null):void
+		{
+			//change the cloud file to an updated one
+			log("handleChangePublishedFile" + writeFileToCloud(TEST_FILE, "new updated data" + new Date().date + "-" + new Date().hours +  "-" + new Date().minutes ) );
+		}
+		
+		public function handleDeletePublishedFile(e:Event = null):void
+		{
+			//test upload
+			if ( !publishedWorkshopFileId )
+			{
+				log("ERROR - publish a file first to get a reference to the published file id");
+				return
+			}
+			
+			log("handleDeletePublishedFile " + Steamworks.deletePublishedFile(publishedWorkshopFileId) + " ...");
+		}
+		
+		public function handleUpdatePublishedFile(e:Event = null):void
+		{
+			//test upload
+			if ( !publishedWorkshopFileId )
+			{
+				log("ERROR - publish a file first to get a reference to the published file id");
+				return
+			}
+			log("handleUpdatePublishedFile:");
+			var publishFileId:String = this.publishedWorkshopFileId;
+			var updateHandle:String = Steamworks.createPublishedFileUpdateRequest(publishFileId);
+			log(" createPublishedFileUpdateRequest " + updateHandle);
+			log(" updatePublishedFileTitle " + Steamworks.updatePublishedFileTitle(updateHandle, "updated file title"));
+			log(" updatePublishedFileDescription " + Steamworks.updatePublishedFileDescription(updateHandle, "Updated file description") );
+			
+			//the updated file needs to be writted/shared to the cloud first using FileWrite and FileShare
+			log(" updatePublishedFileDescription " + Steamworks.updatePublishedFileFile(updateHandle, TEST_FILE) );
+			
+			log(" commitPublishedFileUpdate " + Steamworks.commitPublishedFileUpdate(updateHandle) + " ..." );
 		}
 		
 		public function handlePublishWorkshopFile(e:Event = null ):void
 		{
 			
 			// public workshop file 
-			log("Steamworks.publishWorkshopFile('mylevel1.png')  == " 
-				+ Steamworks.publishWorkshopFile('mylevel1.png',
-					"mylevel1.png", 
-					"Jons awesome level", 
-					"This is jons awesome level.", 
-					"This is the mostest awesomeness level ever", 
+			log("Steamworks.publishWorkshopFile(" + TEST_FILE + ")  == " 
+				+ Steamworks.publishWorkshopFile(TEST_FILE,
+					TEST_FILE, 
+					"Test pub file " + new Date().date + "-" + new Date().hours +  "-" + new Date().minutes, 
+					"Test publish file", 
+					"Testing publish file", 
 					RemoteStoragePublishedFileVisibility.k_ERemoteStoragePublishedFileVisibilityPublic, 
 					["Map"], 
 					0)
-				);
+				+ " ...");
 				
 		}
 		
@@ -270,11 +333,20 @@ package
 				case SteamConstants.RESPONSE_OnUserFileShare:
 					log("RESPONSE_OnUserFileShare: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;
+				case SteamConstants.RESPONSE_OnPublishWorkshopFile:
+					log("RESPONSE_OnPublishWorkshopFile: " + e.data + " " + SteamResult.getMessage(e.response));
+					publishedWorkshopFileId = String(e.data);
+					break;
+				case SteamConstants.RESPONSE_OnDeletePublishedFile:
+					log("RESPONSE_OnDeletePublishedFile: " + e.response + " " + SteamResult.getMessage(e.response));
+					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
-					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data + " " + SteamResult.getMessage(e.response));
+					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data + " " + e.response + " "  + SteamResult.getMessage(e.response));
 					
 					//get the file details for the list
-					getPublishedFileDetails(e.data as EnumerateWorkshopFilesResult);
+					var filesResult:EnumerateWorkshopFilesResult = e.data as EnumerateWorkshopFilesResult;
+					if( filesResult.publishedFileId.length > 0 )
+						getPublishedFileDetails(filesResult);
 					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
 					log("RESPONSE_GetPublishedFileDetails: "+e.data + " " + SteamResult.getMessage(e.response));

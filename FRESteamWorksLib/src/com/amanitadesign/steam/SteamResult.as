@@ -1,8 +1,7 @@
 package com.amanitadesign.steam 
 {
 	/**
-	 * ...
-	 * @author Zo
+	 * Steam EResult codes
 	 */
 	public class SteamResult 
 	{

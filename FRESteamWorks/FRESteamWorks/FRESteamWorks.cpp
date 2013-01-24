@@ -112,6 +112,16 @@ void CSteam::EnumeratePublishedWorkshopFiles( EWorkshopEnumerationType eEnumerat
 	m_CallbackEnumeratePublishedWorkshopFiles.Set( hSteamAPICall, this, &CSteam::OnEnumeratePublishedWorkshopFiles );
 }
 
+void CSteam::EnumerateUserPublishedFiles( uint32 unStartIndex) {
+	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->EnumerateUserPublishedFiles(unStartIndex);
+	m_CallbackEnumerateUserPublishedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumeratePublishedWorkshopFiles );
+}
+
+void CSteam::EnumerateUserSubscribedFiles( uint32 unStartIndex) {
+	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->EnumerateUserSubscribedFiles(unStartIndex);
+	m_CallbackEnumerateUserSubscribedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumeratePublishedWorkshopFiles );
+}
+
 void CSteam::PublishWorkshopFile( const char* fileName, const char* previewFile,  const char* title,  const char* description,  const char* longdescription, ERemoteStoragePublishedFileVisibility visiblity, SteamParamStringArray_t *pTags, EWorkshopFileType type) {
 	//TODO - get tags
 	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->PublishWorkshopFile((char *)fileName, (char *)previewFile, m_iAppID, (char *)title, (char *)description, visiblity, pTags, type);
@@ -126,6 +136,45 @@ void CSteam::GetPublishedFileDetails(PublishedFileId_t unPublishedFileId) {
 void CSteam::UGCDownload(UGCHandle_t ugcHandle, uint32 unPriority) {
 	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->UGCDownload(ugcHandle, unPriority);
 	m_CallbackUGCDownload.Set( hSteamAPICall, this, &CSteam::OnUGCDownload );
+}
+
+
+PublishedFileUpdateHandle_t CSteam::CreatePublishedFileUpdateRequest( PublishedFileId_t unPublishedFileId ){
+	return SteamRemoteStorage()->CreatePublishedFileUpdateRequest(unPublishedFileId);
+}
+
+bool CSteam::UpdatePublishedFileFile( PublishedFileUpdateHandle_t updateHandle, const char *pchFile ){
+	return SteamRemoteStorage()->UpdatePublishedFileFile(updateHandle, pchFile );
+}
+
+bool CSteam::UpdatePublishedFilePreviewFile( PublishedFileUpdateHandle_t updateHandle, const char *pchPreviewFile ){
+	return SteamRemoteStorage()->UpdatePublishedFilePreviewFile(updateHandle, pchPreviewFile );
+}
+	
+bool CSteam::UpdatePublishedFileTitle( PublishedFileUpdateHandle_t updateHandle, const char *pchTitle ){
+	return SteamRemoteStorage()->UpdatePublishedFileTitle(updateHandle, pchTitle );
+}
+	
+bool CSteam::UpdatePublishedFileDescription( PublishedFileUpdateHandle_t updateHandle, const char *pchDescription ) {
+	return SteamRemoteStorage()->UpdatePublishedFileDescription(updateHandle, pchDescription );
+}
+	
+bool CSteam::UpdatePublishedFileVisibility( PublishedFileUpdateHandle_t updateHandle, ERemoteStoragePublishedFileVisibility eVisibility ){
+	return SteamRemoteStorage()->UpdatePublishedFileVisibility(updateHandle, eVisibility );
+}
+	
+bool CSteam::UpdatePublishedFileTags( PublishedFileUpdateHandle_t updateHandle, SteamParamStringArray_t *pTags ){
+	return SteamRemoteStorage()->UpdatePublishedFileTags(updateHandle, pTags );
+}
+
+void CSteam::CommitPublishedFileUpdate(PublishedFileUpdateHandle_t updateHandle){
+	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->CommitPublishedFileUpdate(updateHandle);
+	m_CallbackCommitPublishedFileUpdate.Set( hSteamAPICall, this, &CSteam::OnCommitPublishedFileUpdated );
+}
+	
+void CSteam::DeletePublishedFile(PublishedFileId_t unPublishedFileId ){
+	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->DeletePublishedFile(unPublishedFileId);
+	m_CallbackDeletePublishedFile.Set( hSteamAPICall, this, &CSteam::OnDeletePublishedFile );
 }
 
 void CSteam::DispatchEvent(const int req_type, const int response) {
@@ -145,19 +194,20 @@ void CSteam::DispatchEvent(const int req_type, const int response) {
 //called when SteamRemoteStorate->EnumeratePublishedWorkshopFiles() returns asynchronously
 void CSteam::OnEnumeratePublishedWorkshopFiles( RemoteStorageEnumerateWorkshopFilesResult_t *pCallback, bool bIOFailure ) {
 	//save the values returned to be retrived by the AS portation
-	//for( int i=0; i < pCallback->m_nResultsReturned; i++)
-	//	EnumeratedWorkshopFilesResult[i] = pCallback->m_rgPublishedFileId[i];
-	//g_Steam->EnumeratedWorkshopFilesLength = pCallback->m_nResultsReturned;
 	EnumerateWorkshopFilesResult = pCallback;
-	g_Steam->DispatchEvent(RESPONSE_EnumeratePublishedWorkshopFiles, pCallback->m_nResultsReturned);
+	enumerateResultsReturned = pCallback->m_nResultsReturned; 
+	g_Steam->DispatchEvent(RESPONSE_EnumeratePublishedWorkshopFiles, pCallback->m_eResult);
 }
+
 //called when SteamRemoteStorate->FileShare() returns asynchronously
+
 void CSteam::OnUserFileShare( RemoteStorageFileShareResult_t *pCallback, bool bIOFailure ) {
 	g_Steam->DispatchEvent(RESPONSE_OnUserFileShare, pCallback->m_eResult);
 }
 
 //called when SteamRemoteStorate->PublishWorkshopFile() returns asynchronously
 void CSteam::OnPublishWorkshopFile( RemoteStoragePublishFileResult_t *pCallback, bool bIOFailure ) {
+	publishWorkshopFileResult = pCallback->m_nPublishedFileId;
 	g_Steam->DispatchEvent(RESPONSE_OnPublishWorkshopFile, pCallback->m_eResult);
 }
 
@@ -195,6 +245,14 @@ void CSteam::OnAchievementStored( UserAchievementStored_t *pCallback ) {
     if ( m_iAppID == pCallback->m_nGameID ) {
         g_Steam->DispatchEvent(RESPONSE_OnAchievementStored, RESPONSE_OK);
     }
+}
+
+void CSteam::OnCommitPublishedFileUpdated(RemoteStorageUpdatePublishedFileResult_t *pCallback, bool bIOFailure ) {
+	g_Steam->DispatchEvent(RESPONSE_OnCommitPublishedFileUpdated, pCallback->m_eResult);
+}
+
+void CSteam::OnDeletePublishedFile(RemoteStorageDeletePublishedFileResult_t *pCallback, bool bIOFailure ) {
+	g_Steam->DispatchEvent(RESPONSE_OnDeletePublishedFile, pCallback->m_eResult);
 }
 
 extern "C" {
@@ -547,6 +605,16 @@ extern "C" {
 		SteamAPI_RunCallbacks();
 		return result;
 	}
+	
+
+	FREObject AIRSteam_GetPublishWorkshopFileResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		if (g_Steam )
+		{
+			result = UInt64ToFREObject(g_Steam->publishWorkshopFileResult);
+		}
+		return result;
+	}
 
 	FREObject AIRSteam_GetPublishedFileDetails(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
@@ -649,7 +717,40 @@ extern "C" {
 		return result;
 	}
 
+	//ENUMERATION
+	FREObject AIRSteam_EnumerateUserPublishedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		uint32_t unStartIndex = 0;
+		uint32_t len = -1;
+		if (g_Steam &&  argc == 1)
+		{
+			if(FREGetObjectAsUint32(argv[0], &unStartIndex) == FRE_OK )
+			{
+				g_Steam->EnumerateUserPublishedFiles(unStartIndex);
+				FRENewObjectFromBool(true , &result);
+			}
+			else
+				FRENewObjectFromBool(false , &result);
+		}
+		return result;
+	}
 
+	FREObject AIRSteam_EnumerateUserSubscribedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		uint32_t unStartIndex = 0;
+		uint32_t len = -1;
+		if (g_Steam &&  argc == 1)
+		{
+			if(FREGetObjectAsUint32(argv[0], &unStartIndex) == FRE_OK )
+			{
+				g_Steam->EnumerateUserSubscribedFiles(unStartIndex);
+				FRENewObjectFromBool(true , &result);
+			}
+			else
+				FRENewObjectFromBool(false , &result);
+		}
+		return result;
+	}
 	FREObject AIRSteam_EnumeratePublishedWorkshopFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
 		
@@ -699,16 +800,16 @@ extern "C" {
 			//	float m_rgScore[ k_unEnumeratePublishedFilesMaxResults ];
 
 			FRENewObjectFromInt32(g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount, &m_nTotalResultCount);
-			FRENewObjectFromInt32(g_Steam->EnumerateWorkshopFilesResult->m_nResultsReturned, &m_nResultsReturned);
+			FRENewObjectFromInt32(g_Steam->enumerateResultsReturned, &m_nResultsReturned);
 
 			//PublishedFileId
 			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgPublishedFileId, NULL );
-			FRESetArrayLength( m_rgPublishedFileId, g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount );
+			FRESetArrayLength( m_rgPublishedFileId, g_Steam->enumerateResultsReturned );
 			
 			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgScore, NULL );
-			FRESetArrayLength( m_rgScore, g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount );
+			FRESetArrayLength( m_rgScore, g_Steam->enumerateResultsReturned );
 
-			for ( int32_t i = 0; i <  g_Steam->EnumerateWorkshopFilesResult->m_nTotalResultCount; i++)
+			for ( uint32_t i = 0; i <  g_Steam->enumerateResultsReturned; i++)
 			{
 				uint64 val =  g_Steam->EnumerateWorkshopFilesResult->m_rgPublishedFileId[i];
 				FREObject element = UInt64ToFREObject(val);
@@ -826,6 +927,186 @@ extern "C" {
 		FRENewObjectFromInt32(readResult, &result);
 		return result;
 	}
+
+	FREObject AIRSteam_CreatePublishedFileUpdateRequest(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 publishedFileId = 0;
+
+		if (g_Steam &&  argc == 1)
+		{
+			publishedFileId = FREObjectToUint64(argv[0]);
+			if( publishedFileId != 0 ) 
+			{
+				PublishedFileUpdateHandle_t updateHandle = g_Steam->CreatePublishedFileUpdateRequest(publishedFileId);
+				result = UInt64ToFREObject( updateHandle );
+			}
+		}
+		return result;
+	}
+
+	FREObject AIRSteam_UpdatePublishedFileFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+		const uint8_t *fileName = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 && FREGetObjectAsUTF8(argv[1], &len, &fileName) == FRE_OK ) 
+			{
+				 FRENewObjectFromBool( g_Steam->UpdatePublishedFileFile(updateHandle, (char *)fileName), &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_UpdatePublishedFilePreviewFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+		const uint8_t *fileName = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 && FREGetObjectAsUTF8(argv[1], &len, &fileName) == FRE_OK ) 
+			{
+				 FRENewObjectFromBool( g_Steam->UpdatePublishedFilePreviewFile(updateHandle, (char *)fileName), &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_UpdatePublishedFileTitle(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+		const uint8_t *title = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 && FREGetObjectAsUTF8(argv[1], &len, &title) == FRE_OK ) 
+			{
+				 FRENewObjectFromBool( g_Steam->UpdatePublishedFileTitle(updateHandle, (char *)title), &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_UpdatePublishedFileDescription(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+		const uint8_t *description = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 && FREGetObjectAsUTF8(argv[1], &len, &description) == FRE_OK ) 
+			{
+				 FRENewObjectFromBool( g_Steam->UpdatePublishedFileDescription(updateHandle, (char *)description), &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_UpdatePublishedFileVisibility(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+		uint32_t visibility = 0;
+
+		if (g_Steam &&  argc == 2)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 && FREGetObjectAsUint32(argv[1], &visibility) == FRE_OK ) 
+			{
+				 FRENewObjectFromBool( g_Steam->UpdatePublishedFileVisibility(updateHandle, (ERemoteStoragePublishedFileVisibility)visibility), &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_UpdatePublishedFileTags(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		FRENewObjectFromBool(false, &result);
+		//TODO
+		return result;
+	}
+	
+	FREObject AIRSteam_CommitPublishedFileUpdate(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 updateHandle = 0;
+
+		if (g_Steam &&  argc == 1)
+		{
+			updateHandle = FREObjectToUint64(argv[0]);
+			if( updateHandle != 0 ) 
+			{
+				g_Steam->CommitPublishedFileUpdate(updateHandle);
+				FRENewObjectFromBool(true, &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
+	FREObject AIRSteam_DeletePublishedFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32_t len = -1;
+		uint64 pubFileId = 0;
+
+		if (g_Steam &&  argc == 1)
+		{
+			pubFileId = FREObjectToUint64(argv[0]);
+			if( pubFileId != 0 ) 
+			{
+				g_Steam->DeletePublishedFile(pubFileId);
+				FRENewObjectFromBool(true, &result);
+			}
+			else
+				FRENewObjectFromBool(false, &result);
+		}
+		else
+			FRENewObjectFromBool(false, &result);
+		return result;
+	}
+	
 	//============================
 
 	FREObject UInt64ToFREObject( uint64 value) {
@@ -852,7 +1133,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 29;
+        *numFunctions = 41;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -972,6 +1253,55 @@ extern "C" {
 		func[28].name = (const uint8_t*) "AIRSteam_UGCRead";
         func[28].functionData = NULL;
 		func[28].function = &AIRSteam_UGCRead;
+
+		func[29].name = (const uint8_t*) "AIRSteam_EnumerateUserPublishedFiles";
+        func[29].functionData = NULL;
+		func[29].function = &AIRSteam_EnumerateUserPublishedFiles;
+		
+		func[30].name = (const uint8_t*) "AIRSteam_EnumerateUserSubscribedFiles";
+        func[30].functionData = NULL;
+		func[30].function = &AIRSteam_EnumerateUserSubscribedFiles;
+		
+		func[31].name = (const uint8_t*) "AIRSteam_CreatePublishedFileUpdateRequest";
+        func[31].functionData = NULL;
+		func[31].function = &AIRSteam_CreatePublishedFileUpdateRequest;
+		
+		func[32].name = (const uint8_t*) "AIRSteam_UpdatePublishedFileFile";
+        func[32].functionData = NULL;
+		func[32].function = &AIRSteam_UpdatePublishedFileFile;
+		
+		func[33].name = (const uint8_t*) "AIRSteam_UpdatePublishedFilePreviewFile";
+        func[33].functionData = NULL;
+		func[33].function = &AIRSteam_UpdatePublishedFilePreviewFile;
+		
+		func[34].name = (const uint8_t*) "AIRSteam_UpdatePublishedFileTitle";
+        func[34].functionData = NULL;
+		func[34].function = &AIRSteam_UpdatePublishedFileTitle;
+		
+		func[35].name = (const uint8_t*) "AIRSteam_UpdatePublishedFileDescription";
+        func[35].functionData = NULL;
+		func[35].function = &AIRSteam_UpdatePublishedFileDescription;
+		
+		func[36].name = (const uint8_t*) "AIRSteam_UpdatePublishedFileVisibility";
+        func[36].functionData = NULL;
+		func[36].function = &AIRSteam_UpdatePublishedFileVisibility;
+		
+		func[37].name = (const uint8_t*) "AIRSteam_UpdatePublishedFileTags";
+        func[37].functionData = NULL;
+		func[37].function = &AIRSteam_UpdatePublishedFileTags;
+		
+		func[38].name = (const uint8_t*) "AIRSteam_CommitPublishedFileUpdate";
+        func[38].functionData = NULL;
+		func[38].function = &AIRSteam_CommitPublishedFileUpdate;
+		
+		func[39].name = (const uint8_t*) "AIRSteam_DeletePublishedFile";
+        func[39].functionData = NULL;
+		func[39].function = &AIRSteam_DeletePublishedFile;
+
+		func[40].name = (const uint8_t*) "AIRSteam_GetPublishWorkshopFileResult";
+        func[40].functionData = NULL;
+		func[40].function = &AIRSteam_GetPublishWorkshopFileResult;
+		
 
         *functions = func;
     }

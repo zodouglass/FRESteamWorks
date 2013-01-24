@@ -36,7 +36,9 @@ enum ResponseTypes
 	RESPONSE_EnumeratePublishedWorkshopFiles,
 	RESPONSE_GetPublishedFileDetails,
 	RESPONSE_UGCDownload,
-	RESPONSE_UGCRead
+	RESPONSE_UGCRead,
+	RESPONSE_OnCommitPublishedFileUpdated,
+	RESPONSE_OnDeletePublishedFile
 };
 enum ResponseCodes
 {
@@ -58,9 +60,13 @@ public:
 
 	//results from EnumeratePublishedWorkshopFiles
 	RemoteStorageEnumerateWorkshopFilesResult_t *EnumerateWorkshopFilesResult;
+	uint32 enumerateResultsReturned;
 
 	//result from UGCDownload
 	RemoteStorageDownloadUGCResult_t *UGCDownloadResult;
+
+	//result from publishWorkshopFile
+	PublishedFileId_t publishWorkshopFileResult;
 
 	//results from GetPublishedFileDetails
 	RemoteStorageGetPublishedFileDetailsResult_t *PublishedFileDetailsResult;
@@ -90,6 +96,12 @@ public:
 	void OnEnumeratePublishedWorkshopFiles(RemoteStorageEnumerateWorkshopFilesResult_t *pCallback,	bool bIOFailure );
 	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumeratePublishedWorkshopFiles;
 
+	void EnumerateUserPublishedFiles(uint32 unStartIndex );
+	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumerateUserPublishedFiles;
+
+	void EnumerateUserSubscribedFiles(uint32 unStartIndex );
+	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumerateUserSubscribedFiles;
+
 	void GetPublishedFileDetails(PublishedFileId_t unPublishedFileId);
 	void OnGetPublishedFileDetails(RemoteStorageGetPublishedFileDetailsResult_t *pCallback, bool bIOFailure );
 	CCallResult<CSteam, RemoteStorageGetPublishedFileDetailsResult_t> m_CallbackGetPublishedFileDetails;
@@ -97,6 +109,25 @@ public:
 	void UGCDownload(UGCHandle_t ugcHandle, uint32 unPriority);
 	void OnUGCDownload(RemoteStorageDownloadUGCResult_t *pCallback, bool bIOFailure );
 	CCallResult<CSteam, RemoteStorageDownloadUGCResult_t> m_CallbackUGCDownload;
+
+	
+	
+	PublishedFileUpdateHandle_t CreatePublishedFileUpdateRequest( PublishedFileId_t unPublishedFileId );
+	bool UpdatePublishedFileFile( PublishedFileUpdateHandle_t updateHandle, const char *pchFile );
+	bool UpdatePublishedFilePreviewFile( PublishedFileUpdateHandle_t updateHandle, const char *pchPreviewFile );
+	bool UpdatePublishedFileTitle( PublishedFileUpdateHandle_t updateHandle, const char *pchTitle );
+	bool UpdatePublishedFileDescription( PublishedFileUpdateHandle_t updateHandle, const char *pchDescription ) ;
+	bool UpdatePublishedFileVisibility( PublishedFileUpdateHandle_t updateHandle, ERemoteStoragePublishedFileVisibility eVisibility );
+	bool UpdatePublishedFileTags( PublishedFileUpdateHandle_t updateHandle, SteamParamStringArray_t *pTags );
+
+	void CommitPublishedFileUpdate(PublishedFileUpdateHandle_t updateHandle);
+	void OnCommitPublishedFileUpdated(RemoteStorageUpdatePublishedFileResult_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, RemoteStorageUpdatePublishedFileResult_t> m_CallbackCommitPublishedFileUpdate;
+
+	void DeletePublishedFile(PublishedFileId_t unPublishedFileId );
+	void OnDeletePublishedFile(RemoteStorageDeletePublishedFileResult_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, RemoteStorageDeletePublishedFileResult_t> m_CallbackDeletePublishedFile;
+
 	//end workshop
 
 	void DispatchEvent( const int req_type, const int response );
@@ -138,7 +169,19 @@ extern "C" {
 	FREObject AIRSteam_UGCDownload(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetUGCDownloadResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_UGCRead(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
-
+	FREObject AIRSteam_EnumerateUserPublishedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_EnumerateUserSubscribedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	//update published file
+	FREObject AIRSteam_CreatePublishedFileUpdateRequest(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFileFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFilePreviewFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFileTitle(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFileDescription(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFileVisibility(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UpdatePublishedFileTags(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_CommitPublishedFileUpdate(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_DeletePublishedFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetPublishWorkshopFileResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
 	FREObject UInt64ToFREObject( uint64 value);
 	uint64 FREObjectToUint64( FREObject valueString );

@@ -39,6 +39,9 @@ package com.amanitadesign.steam
 				case SteamConstants.RESPONSE_OnAchievementStored:
 					trace("RESPONSE_OnAchievementStored");
 					break;
+				case SteamConstants.RESPONSE_OnPublishWorkshopFile:
+					sEvent.data = this.getPublishWorkshopFileResult();
+					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
 					trace("RESPONSE_EnumeratePublishedWorkshopFiles setting data");
 					sEvent.data = new EnumerateWorkshopFilesResult(this.getEnumeratedWorkshopFilesResult());
@@ -210,6 +213,15 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_EnumeratePublishedWorkshopFiles", enumerationType, startIndex, count, days, pTags, uTags) as Boolean;
 		}
 		
+		public function enumerateUserPublishedFiles(startIndex:uint):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_EnumerateUserPublishedFiles", startIndex) as Boolean;
+		}
+		public function enumerateUserSubscribedFiles(startIndex:uint):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_EnumerateUserSubscribedFiles", startIndex) as Boolean;
+		}
+		
 		public function getPublishedFileDetails(publishedFileId:String):Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_GetPublishedFileDetails", publishedFileId) as Boolean;
@@ -238,8 +250,58 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_UGCRead", ugcHandle, byteArray, fileSize, offset) as int;
 		}
 		
+		//update published file
+		
+		public function createPublishedFileUpdateRequest(publishFileId:String):String
+		{
+			return _ExtensionContext.call("AIRSteam_CreatePublishedFileUpdateRequest", publishFileId) as String; 
+		}
+		
+		public function updatePublishedFileFile(updateHandle:String, fileName:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFileFile", updateHandle, fileName) as Boolean; 
+		}
+		
+		public function updatePublishedFilePreviewFile(updateHandle:String, previewFileName:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFilePreviewFile", updateHandle, previewFileName) as Boolean; 
+		}
+		
+		public function updatePublishedFileTitle(updateHandle:String, title:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFileTitle", updateHandle, title) as Boolean; 
+		}
+		
+		public function updatePublishedFileDescription(updateHandle:String, desc:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFileDescription", updateHandle, desc) as Boolean; 
+		}
+		
+		public function updatePublishedFileVisibility(updateHandle:String, visibility:uint):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFileVisibility", updateHandle, visibility) as Boolean; 
+		}
+		
+		public function updatePublishedFileTags(updateHandle:String, tags:Array):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_UpdatePublishedFileTags", updateHandle, tags) as Boolean; 
+		}
+		
+		public function commitPublishedFileUpdate(updateHandle:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_CommitPublishedFileUpdate", updateHandle) as Boolean; 
+		}
+		
+		public function deletePublishedFile(publishFileId:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_DeletePublishedFile", publishFileId) as Boolean; 
+		}
 		
 		//protected functions to get the result of async call results
+		protected function getPublishWorkshopFileResult():String
+		{
+			return _ExtensionContext.call("AIRSteam_GetPublishWorkshopFileResult") as String;
+		}
 		protected function getEnumeratedWorkshopFilesResult():Object
 		{
 			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesResult") as Object;
