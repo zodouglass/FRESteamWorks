@@ -46,6 +46,14 @@ package com.amanitadesign.steam
 					trace("RESPONSE_EnumeratePublishedWorkshopFiles setting data");
 					sEvent.data = new EnumerateWorkshopFilesResult(this.getEnumeratedWorkshopFilesResult());
 					break;
+				case SteamConstants.RESPONSE_EnumerateUserPublishedFiles:
+					trace("RESPONSE_EnumerateUserPublishedFiles setting data");
+					sEvent.data = new EnumerateWorkshopFilesResult(this.getEnumeratedUserPublishedFilesResult());
+					break;
+				case SteamConstants.RESPONSE_EnumerateUserSubscribedFiles:
+					trace("RESPONSE_EnumerateUserSubscribedFiles setting data");
+					sEvent.data = new EnumerateWorkshopFilesResult(this.getEnumeratedUserSubscribedFilesResult());
+					break;
 				case SteamConstants.RESPONSE_GetPublishedFileDetails:
 					trace("RESPONSE_GetPublishedFileDetails setting data");
 					
@@ -305,6 +313,14 @@ package com.amanitadesign.steam
 		protected function getEnumeratedWorkshopFilesResult():Object
 		{
 			return _ExtensionContext.call("AIRSteam_GetEnumeratedWorkshopFilesResult") as Object;
+		}
+		protected function getEnumeratedUserPublishedFilesResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetEnumerateUserPublishedFilesResult") as Object;
+		}
+		protected function getEnumeratedUserSubscribedFilesResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetEnumerateUserSubscribedFilesResult") as Object;
 		}
 		protected function getPublishedFileDetailsResult():Object
 		{

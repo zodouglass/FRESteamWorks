@@ -114,12 +114,12 @@ void CSteam::EnumeratePublishedWorkshopFiles( EWorkshopEnumerationType eEnumerat
 
 void CSteam::EnumerateUserPublishedFiles( uint32 unStartIndex) {
 	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->EnumerateUserPublishedFiles(unStartIndex);
-	m_CallbackEnumerateUserPublishedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumeratePublishedWorkshopFiles );
+	m_CallbackEnumerateUserPublishedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumerateUserPublishedFiles );
 }
 
 void CSteam::EnumerateUserSubscribedFiles( uint32 unStartIndex) {
 	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->EnumerateUserSubscribedFiles(unStartIndex);
-	m_CallbackEnumerateUserSubscribedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumeratePublishedWorkshopFiles );
+	m_CallbackEnumerateUserSubscribedFiles.Set( hSteamAPICall, this, &CSteam::OnEnumerateUserSubscribedFiles );
 }
 
 void CSteam::PublishWorkshopFile( const char* fileName, const char* previewFile,  const char* title,  const char* description,  const char* longdescription, ERemoteStoragePublishedFileVisibility visiblity, SteamParamStringArray_t *pTags, EWorkshopFileType type) {
@@ -197,6 +197,22 @@ void CSteam::OnEnumeratePublishedWorkshopFiles( RemoteStorageEnumerateWorkshopFi
 	EnumerateWorkshopFilesResult = pCallback;
 	enumerateResultsReturned = pCallback->m_nResultsReturned; 
 	g_Steam->DispatchEvent(RESPONSE_EnumeratePublishedWorkshopFiles, pCallback->m_eResult);
+}
+
+//called when SteamRemoteStorate->EnumerateUserPublishedFiles() returns asynchronously
+void CSteam::OnEnumerateUserPublishedFiles( RemoteStorageEnumerateUserPublishedFilesResult_t *pCallback, bool bIOFailure ) {
+	//save the values returned to be retrived by the AS portation
+	EnumerateUserPublishedFilesResult = pCallback;
+	enumerateResultsReturned = pCallback->m_nResultsReturned; 
+	g_Steam->DispatchEvent(RESPONSE_EnumerateUserPublishedFiles, pCallback->m_eResult);
+}
+
+//called when SteamRemoteStorate->EnumerateUserSubscribedFiles() returns asynchronously
+void CSteam::OnEnumerateUserSubscribedFiles( RemoteStorageEnumerateUserSubscribedFilesResult_t *pCallback, bool bIOFailure ) {
+	//save the values returned to be retrived by the AS portation
+	EnumerateUserSubscribedFilesResult = pCallback;
+	enumerateResultsReturned = pCallback->m_nResultsReturned; 
+	g_Steam->DispatchEvent(RESPONSE_EnumerateUserSubscribedFiles, pCallback->m_eResult);
 }
 
 //called when SteamRemoteStorate->FileShare() returns asynchronously
@@ -831,6 +847,72 @@ extern "C" {
 		return result;
 	}
 
+	FREObject AIRSteam_GetEnumerateUserPublishedFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		if (g_Steam )
+		{
+			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
+
+			FREObject m_nResultsReturned;
+			FREObject m_nTotalResultCount;
+			FREObject m_rgPublishedFileId;
+
+			FRENewObjectFromInt32(g_Steam->EnumerateUserPublishedFilesResult->m_nTotalResultCount, &m_nTotalResultCount);
+			FRENewObjectFromInt32(g_Steam->enumerateResultsReturned, &m_nResultsReturned);
+
+			//PublishedFileId
+			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgPublishedFileId, NULL );
+			FRESetArrayLength( m_rgPublishedFileId, g_Steam->enumerateResultsReturned );
+
+			for ( uint32_t i = 0; i <  g_Steam->enumerateResultsReturned; i++)
+			{
+				uint64 val =  g_Steam->EnumerateUserPublishedFilesResult->m_rgPublishedFileId[i];
+				FREObject element = UInt64ToFREObject(val);
+				FRESetArrayElementAt( m_rgPublishedFileId, i, element );
+			}
+			
+
+			// fill properties of FREObject result
+			FRESetObjectProperty(result, (const uint8_t*)"resultsReturned", m_nResultsReturned, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"totalResultCount", m_nTotalResultCount, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"publishedFileId", m_rgPublishedFileId, NULL);
+		}
+		return result;
+	}
+	
+	FREObject AIRSteam_GetEnumerateUserSubscribedFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		if (g_Steam )
+		{
+			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
+
+			FREObject m_nResultsReturned;
+			FREObject m_nTotalResultCount;
+			FREObject m_rgPublishedFileId;
+
+			FRENewObjectFromInt32(g_Steam->EnumerateUserSubscribedFilesResult->m_nTotalResultCount, &m_nTotalResultCount);
+			FRENewObjectFromInt32(g_Steam->enumerateResultsReturned, &m_nResultsReturned);
+
+			//PublishedFileId
+			FRENewObject((const uint8_t*)"Array", 0, NULL, &m_rgPublishedFileId, NULL );
+			FRESetArrayLength( m_rgPublishedFileId, g_Steam->enumerateResultsReturned );
+
+			for ( uint32_t i = 0; i <  g_Steam->enumerateResultsReturned; i++)
+			{
+				uint64 val =  g_Steam->EnumerateUserSubscribedFilesResult->m_rgPublishedFileId[i];
+				FREObject element = UInt64ToFREObject(val);
+				FRESetArrayElementAt( m_rgPublishedFileId, i, element );
+			}
+			
+
+			// fill properties of FREObject result
+			FRESetObjectProperty(result, (const uint8_t*)"resultsReturned", m_nResultsReturned, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"totalResultCount", m_nTotalResultCount, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"publishedFileId", m_rgPublishedFileId, NULL);
+		}
+		return result;
+	}
+
 	FREObject AIRSteam_UGCDownload(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
 		FREObject result;
 		
@@ -1133,7 +1215,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 41;
+        *numFunctions = 43;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -1302,7 +1384,14 @@ extern "C" {
         func[40].functionData = NULL;
 		func[40].function = &AIRSteam_GetPublishWorkshopFileResult;
 		
-
+		func[41].name = (const uint8_t*) "AIRSteam_GetEnumerateUserPublishedFilesResult";
+        func[41].functionData = NULL;
+		func[41].function = &AIRSteam_GetEnumerateUserPublishedFilesResult;
+		
+		func[42].name = (const uint8_t*) "AIRSteam_GetEnumerateUserSubscribedFilesResult";
+        func[42].functionData = NULL;
+		func[42].function = &AIRSteam_GetEnumerateUserSubscribedFilesResult;
+		
         *functions = func;
     }
     

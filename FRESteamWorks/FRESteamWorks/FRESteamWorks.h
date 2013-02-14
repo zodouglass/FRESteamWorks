@@ -38,7 +38,9 @@ enum ResponseTypes
 	RESPONSE_UGCDownload,
 	RESPONSE_UGCRead,
 	RESPONSE_OnCommitPublishedFileUpdated,
-	RESPONSE_OnDeletePublishedFile
+	RESPONSE_OnDeletePublishedFile,
+	RESPONSE_EnumerateUserPublishedFiles, 
+	RESPONSE_EnumerateUserSubscribedFiles
 };
 enum ResponseCodes
 {
@@ -60,6 +62,9 @@ public:
 
 	//results from EnumeratePublishedWorkshopFiles
 	RemoteStorageEnumerateWorkshopFilesResult_t *EnumerateWorkshopFilesResult;
+	RemoteStorageEnumerateUserPublishedFilesResult_t *EnumerateUserPublishedFilesResult;
+	RemoteStorageEnumerateUserSubscribedFilesResult_t *EnumerateUserSubscribedFilesResult;
+
 	uint32 enumerateResultsReturned;
 
 	//result from UGCDownload
@@ -97,10 +102,12 @@ public:
 	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumeratePublishedWorkshopFiles;
 
 	void EnumerateUserPublishedFiles(uint32 unStartIndex );
-	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumerateUserPublishedFiles;
+	void OnEnumerateUserPublishedFiles(RemoteStorageEnumerateUserPublishedFilesResult_t *pCallback,	bool bIOFailure );
+	CCallResult<CSteam, RemoteStorageEnumerateUserPublishedFilesResult_t> m_CallbackEnumerateUserPublishedFiles;
 
 	void EnumerateUserSubscribedFiles(uint32 unStartIndex );
-	CCallResult<CSteam, RemoteStorageEnumerateWorkshopFilesResult_t> m_CallbackEnumerateUserSubscribedFiles;
+	void OnEnumerateUserSubscribedFiles(RemoteStorageEnumerateUserSubscribedFilesResult_t *pCallback,	bool bIOFailure );
+	CCallResult<CSteam, RemoteStorageEnumerateUserSubscribedFilesResult_t> m_CallbackEnumerateUserSubscribedFiles;
 
 	void GetPublishedFileDetails(PublishedFileId_t unPublishedFileId);
 	void OnGetPublishedFileDetails(RemoteStorageGetPublishedFileDetailsResult_t *pCallback, bool bIOFailure );
@@ -171,6 +178,8 @@ extern "C" {
 	FREObject AIRSteam_UGCRead(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_EnumerateUserPublishedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_EnumerateUserSubscribedFiles(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetEnumerateUserPublishedFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetEnumerateUserSubscribedFilesResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	//update published file
 	FREObject AIRSteam_CreatePublishedFileUpdateRequest(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_UpdatePublishedFileFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);

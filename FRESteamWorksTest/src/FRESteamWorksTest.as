@@ -15,6 +15,8 @@ package
 	import flash.events.Event;
 	import flash.events.IOErrorEvent;
 	import flash.events.SecurityErrorEvent;
+	import flash.net.navigateToURL;
+	import flash.net.URLRequest;
 	import flash.text.TextFormat;
 
 	import flash.display.SimpleButton;
@@ -65,6 +67,7 @@ package
 			addButton("Dowload UGC File", handleUGCDownload);
 			addButton("Read UGC File", handleUGCRead);
 			addButton("Delete Published File", handleDeletePublishedFile);
+			addButton("Open Workshop", handleOpenWorkshop);
 
 			Steamworks.addEventListener(SteamEvent.STEAM_RESPONSE, onSteamResponse);
 			
@@ -251,6 +254,12 @@ package
 			log("handleChangePublishedFile" + writeFileToCloud(TEST_FILE, "new updated data" + new Date().date + "-" + new Date().hours +  "-" + new Date().minutes ) );
 		}
 		
+		public function handleOpenWorkshop(e:Event = null):void
+		{
+			//navigateToURL(new URLRequest("steam://appnews/480"));
+			navigateToURL(new URLRequest("steam://friends/"));
+		}
+		
 		public function handleDeletePublishedFile(e:Event = null):void
 		{
 			//test upload
@@ -341,6 +350,8 @@ package
 					log("RESPONSE_OnDeletePublishedFile: " + e.response + " " + SteamResult.getMessage(e.response));
 					break;
 				case SteamConstants.RESPONSE_EnumeratePublishedWorkshopFiles:
+				case SteamConstants.RESPONSE_EnumerateUserPublishedFiles:
+				case SteamConstants.RESPONSE_EnumerateUserSubscribedFiles:
 					log("RESPONSE_EnumeratePublishedWorkshopFiles: " + e.data + " " + e.response + " "  + SteamResult.getMessage(e.response));
 					
 					//get the file details for the list
