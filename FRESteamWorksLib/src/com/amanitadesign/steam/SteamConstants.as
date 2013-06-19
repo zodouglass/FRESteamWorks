@@ -17,6 +17,8 @@ package com.amanitadesign.steam
 		public static const RESPONSE_OnDeletePublishedFile:int = 10;
 		public static const RESPONSE_EnumerateUserPublishedFiles:int = 11;
 		public static const RESPONSE_EnumerateUserSubscribedFiles:int = 12;
+		public static const RESPONSE_LeaderboardFindResult:int = 13;
+		public static const RESPONSE_LeaderboardScoreUploaded:int = 14;
 		
 		public static const RESPONSE_BatchGetPublishedFileDetails:int = 600;
 	}

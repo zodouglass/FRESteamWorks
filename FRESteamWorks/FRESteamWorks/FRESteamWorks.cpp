@@ -100,6 +100,20 @@ bool CSteam::ResetAllStats( bool bAchievementsToo ) {
 	return false;
 }
 
+
+void CSteam::FindLeaderboard( const char* leaderboardName ) {
+
+	SteamAPICall_t hSteamAPICall = SteamUserStats()->FindLeaderboard((char *)leaderboardName);
+	//SteamAPICall_t hSteamAPICall = SteamUserStats()->FindOrCreateLeaderboard((char *)leaderboardName, k_ELeaderboardSortMethodAscending, k_ELeaderboardDisplayTypeNumeric );
+	m_CallbackLeaderboardFind.Set( hSteamAPICall, this, &CSteam::OnFindLeaderboard );
+}
+
+void CSteam::UploadLeaderboardScore( SteamLeaderboard_t hSteamLeaderboard, ELeaderboardUploadScoreMethod eLeaderboardUploadScoreMethod, int32 nScore, const int32 *pScoreDetails, int cScoreDetailsCount )
+{
+	SteamAPICall_t hSteamAPICall = SteamUserStats()->UploadLeaderboardScore(hSteamLeaderboard, eLeaderboardUploadScoreMethod,nScore,pScoreDetails,cScoreDetailsCount);
+	m_CallbackUploadLeaderboardScore.Set( hSteamAPICall, this, &CSteam::OnUploadLeaderboardScore );
+}
+
 void CSteam::FileShare( const char* fileName ) {
 
 	SteamAPICall_t hSteamAPICall = SteamRemoteStorage()->FileShare((char *)fileName);
@@ -215,6 +229,19 @@ void CSteam::OnEnumerateUserSubscribedFiles( RemoteStorageEnumerateUserSubscribe
 	g_Steam->DispatchEvent(RESPONSE_EnumerateUserSubscribedFiles, pCallback->m_eResult);
 }
 
+//called when SteamUserStats->FindLeaderboard() returns asynchronously
+
+void CSteam::OnFindLeaderboard( LeaderboardFindResult_t *pCallback, bool bIOFailure ) {
+	leaderboardFindResult = pCallback->m_hSteamLeaderboard;
+	g_Steam->DispatchEvent(RESPONSE_LeaderboardFindResult, 1);
+}
+
+//called when SteamUserStats->UploadLeaderboardScore() returns asynchronously
+
+void CSteam::OnUploadLeaderboardScore( LeaderboardScoreUploaded_t *pCallback, bool bIOFailure ) {
+	leaderboardScoreUploadedResult = pCallback;
+	g_Steam->DispatchEvent(RESPONSE_LeaderboardScoreUploaded, 1);
+}
 //called when SteamRemoteStorate->FileShare() returns asynchronously
 
 void CSteam::OnUserFileShare( RemoteStorageFileShareResult_t *pCallback, bool bIOFailure ) {
@@ -559,6 +586,97 @@ extern "C" {
 		return result;
 
 	}
+
+	//leaderboards
+
+	FREObject AIRSteam_FindLeadboard(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+		uint32_t len = -1;
+		const uint8_t *leaderboardName = 0;
+
+		if (g_Steam  && argc==1 && FREGetObjectAsUTF8(argv[0], &len, &leaderboardName) == FRE_OK) {
+			g_Steam->FindLeaderboard((char *)leaderboardName);
+			FRENewObjectFromBool(true , &result);
+		} else {
+			FRENewObjectFromBool(false, &result);
+		}
+
+		return result;
+	}
+
+	FREObject AIRSteam_GetFindLeadboardResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+		if (g_Steam )
+		{
+			result = UInt64ToFREObject(g_Steam->leaderboardFindResult);
+		}
+		return result;
+	}
+
+	FREObject AIRSteam_UploadLeaderboardScore(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+
+		uint64 leaderboardHandle = 0;
+		uint32_t score = 0;
+		uint32_t leaderboardUploadScoreMethod = 0;
+
+		int32 *scoreDetails = 0;
+		int scoreDetailsCount = 0;
+
+		
+		if (g_Steam && argc==5 && FREGetObjectAsUint32(argv[1], &score) == FRE_OK
+								&& FREGetObjectAsUint32(argv[2], &leaderboardUploadScoreMethod) == FRE_OK ) 
+		{
+			leaderboardHandle = FREObjectToUint64(argv[0]);
+
+			g_Steam->UploadLeaderboardScore(leaderboardHandle, (ELeaderboardUploadScoreMethod)leaderboardUploadScoreMethod, score, scoreDetails, scoreDetailsCount);
+			FRENewObjectFromBool(true , &result);
+		} else {
+			FRENewObjectFromBool(false, &result);
+		}
+
+		return result;
+	}
+
+	FREObject AIRSteam_GetLeaderboardScoreUploadedResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+
+		if (g_Steam )
+		{
+			LeaderboardScoreUploaded_t leaderboardScoreUploaded_t = *g_Steam->leaderboardScoreUploadedResult;
+
+			FRENewObject((const uint8_t*)"Object", 0, NULL, &result,NULL);
+
+			FREObject m_bSuccess;
+			FREObject m_hSteamLeaderboard = UInt64ToFREObject(leaderboardScoreUploaded_t.m_hSteamLeaderboard);
+			FREObject m_nScore;
+			FREObject m_bScoreChanged;
+			FREObject m_nGlobalRankNew;
+			FREObject m_nGlobalRankPrevious;
+			
+			FRENewObjectFromBool(leaderboardScoreUploaded_t.m_bSuccess, &m_bSuccess);
+			FRENewObjectFromBool(leaderboardScoreUploaded_t.m_bScoreChanged, &m_bScoreChanged);
+			FRENewObjectFromInt32(leaderboardScoreUploaded_t.m_nScore, &m_nScore);
+			FRENewObjectFromInt32(leaderboardScoreUploaded_t.m_nGlobalRankNew, &m_nGlobalRankNew);
+			FRENewObjectFromInt32(leaderboardScoreUploaded_t.m_nGlobalRankPrevious, &m_nGlobalRankPrevious);
+
+
+			// fill properties of FREObject result
+			FRESetObjectProperty(result, (const uint8_t*)"success", m_bSuccess, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"scoreChanged", m_bScoreChanged, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"steamLeaderboard", m_hSteamLeaderboard, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"score", m_nScore, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"globalRankNew", m_nGlobalRankNew, NULL);
+			FRESetObjectProperty(result, (const uint8_t*)"globalRankPrevious", m_nGlobalRankPrevious, NULL);
+		}
+		
+		return result;
+	}
+
 
 	//Steam Workshop
 	
@@ -1215,7 +1333,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 43;
+        *numFunctions = 47;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -1391,7 +1509,23 @@ extern "C" {
 		func[42].name = (const uint8_t*) "AIRSteam_GetEnumerateUserSubscribedFilesResult";
         func[42].functionData = NULL;
 		func[42].function = &AIRSteam_GetEnumerateUserSubscribedFilesResult;
+
 		
+		func[43].name = (const uint8_t*) "AIRSteam_FindLeadboard";
+        func[43].functionData = NULL;
+		func[43].function = &AIRSteam_FindLeadboard;
+		
+		func[44].name = (const uint8_t*) "AIRSteam_GetFindLeadboardResult";
+        func[44].functionData = NULL;
+		func[44].function = &AIRSteam_GetFindLeadboardResult;
+		
+		func[45].name = (const uint8_t*) "AIRSteam_UploadLeaderboardScore";
+        func[45].functionData = NULL;
+		func[45].function = &AIRSteam_UploadLeaderboardScore;
+
+		func[46].name = (const uint8_t*) "AIRSteam_GetLeaderboardScoreUploadedResult";
+        func[46].functionData = NULL;
+		func[46].function = &AIRSteam_GetLeaderboardScoreUploadedResult;
         *functions = func;
     }
     

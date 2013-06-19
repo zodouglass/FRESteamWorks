@@ -3,6 +3,7 @@ package
 	import com.adobe.images.PNGEncoder;
 	import com.amanitadesign.steam.EnumerateWorkshopFilesResult;
 	import com.amanitadesign.steam.FRESteamWorks;
+	import com.amanitadesign.steam.LeaderboardScoreUploaded;
 	import com.amanitadesign.steam.RemoteStoragePublishedFileVisibility;
 	import com.amanitadesign.steam.SteamConstants;
 	import com.amanitadesign.steam.SteamEvent;
@@ -25,7 +26,7 @@ package
 	import flash.text.TextField;
 	import flash.utils.ByteArray;
 	
-	public class FRESteamWorksTest extends Sprite 
+	public class Main extends Sprite 
 	{
 		private var Steamworks:FRESteamWorks = new FRESteamWorks();
 		public var tf:TextField;
@@ -43,7 +44,7 @@ package
 		private var publishedFileDetails:Array; //result from batchGetPublishedFileDetails
 		private var ugcDownloadResult:UGCResult;
 		
-		public function FRESteamWorksTest():void 
+		public function Main():void 
 		{
 			tf = new TextField();
 			tf.x = 210;
@@ -53,6 +54,8 @@ package
 
 			//tf.addEventListener(MouseEvent.MOUSE_DOWN, onClick);
 			
+			addButton("Find Leaderboard", handleFindLeaderboard);
+			addButton("Submit Leaderboard Score", handleSubmitLeaderboardScore);
 			addButton("Toggle Achievement", handleWinAchievement);
 			addButton("Write Text to Cloud", handleFileWrite);
 			addButton("Write Image to Cloud", handleFileWriteImage);
@@ -126,6 +129,35 @@ package
 				result = dataIn.readUTFBytes(dataIn.length);
 			}
 			return result;
+		}
+		
+		public function handleFindLeaderboard(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				log("findLeaderboard('Test Board') == " + Steamworks.findLeaderboard("Testing LeaderBoard") );
+			}
+		}
+		
+		
+		private var leaderboardHandle:String;
+		
+		public function handleSubmitLeaderboardScore(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				if ( leaderboardHandle == null )
+				{
+					log("leaderboardHandle is required.  use findLeaderboard to retrieve the handle based on the leaderboard name");
+					return
+				}
+				
+				var k_ELeaderboardUploadScoreMethodNone:int = 0,
+					k_ELeaderboardUploadScoreMethodKeepBest:int = 1,	// Leaderboard will keep user's best score
+					k_ELeaderboardUploadScoreMethodForceUpdate:int = 2;	// Leaderboard will always replace score with specified
+				
+				Steamworks.uploadLeaderboardScore(leaderboardHandle, 250, k_ELeaderboardUploadScoreMethodKeepBest );
+			}
 		}
 		
 		public function handleWinAchievement(e:Event = null):void
@@ -327,9 +359,25 @@ package
 				log("not able to set achievement\n");
 			}
 		}
+		
 
 		public function onSteamResponse(e:SteamEvent):void{
 			switch(e.req_type){
+				case SteamConstants.RESPONSE_LeaderboardFindResult:
+					leaderboardHandle = String(e.data);
+					log("RESPONSE_LeaderboardFindResult: " + e.response + " " + SteamResult.getMessage(e.response) + " " + e.data + ( e.data == "0" ? " Leaderboard not found, check the name" : " found"));
+					break;
+				case SteamConstants.RESPONSE_LeaderboardScoreUploaded:
+					var leaderboardScoreUploaded:LeaderboardScoreUploaded = e.data as LeaderboardScoreUploaded;
+					log("RESPONSE_LeaderboardScoreUploaded: " + e.response + " " + SteamResult.getMessage(e.response) + " " + e.data );
+					if ( leaderboardScoreUploaded != null )
+						log("         : " + leaderboardScoreUploaded.steamLeaderboard + 
+						" success: " + leaderboardScoreUploaded.success + 
+						" scoreChanged: " + leaderboardScoreUploaded.scoreChanged + 
+						" score: " + leaderboardScoreUploaded.score + 
+						" rankNew:" + leaderboardScoreUploaded.globalRankNew + 
+						" rankPrevious:"+ leaderboardScoreUploaded.globalRankPrevious);
+					break;
 				case SteamConstants.RESPONSE_OnUserStatsStored:
 					log("RESPONSE_OnUserStatsStored: "+e.response + " " + SteamResult.getMessage(e.response));
 					break;

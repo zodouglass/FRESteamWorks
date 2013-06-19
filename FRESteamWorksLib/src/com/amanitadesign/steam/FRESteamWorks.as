@@ -33,6 +33,12 @@ package com.amanitadesign.steam
 			trace("handleStatusEvent: "+req_type+" "+response + " " + SteamResult.getMessage(response));
 			switch(req_type)
 			{
+				case SteamConstants.RESPONSE_LeaderboardFindResult:
+					sEvent.data = this.getFindLeaderboardResult();
+					break;
+				case SteamConstants.RESPONSE_LeaderboardScoreUploaded:
+					sEvent.data = new LeaderboardScoreUploaded(this.getLeaderboardScoreUploadedResult());
+					break;
 				case SteamConstants.RESPONSE_OnUserStatsReceived:
 					trace("RESPONSE_OnUserStatsReceived");
 					break;
@@ -97,6 +103,19 @@ package com.amanitadesign.steam
 			if(isReady)	_tm = setInterval(runCallbacks, 100);
 			return isReady;
 		}
+		
+		public function findLeaderboard(leaderboardName:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_FindLeadboard", leaderboardName) as Boolean;
+		}
+		
+		public function uploadLeaderboardScore(leaderboardHandle:String, score:int, leaderboardUploadScoreMethod:uint=0, scoreDetails:Array = null):Boolean
+		{
+			if ( scoreDetails == null )
+				scoreDetails = [];
+			return _ExtensionContext.call("AIRSteam_UploadLeaderboardScore", leaderboardHandle, score, leaderboardUploadScoreMethod, scoreDetails, scoreDetails.length) as Boolean;
+		}
+		
 		public function requestStats():Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_RequestStats") as Boolean;
@@ -306,6 +325,14 @@ package com.amanitadesign.steam
 		}
 		
 		//protected functions to get the result of async call results
+		protected function getLeaderboardScoreUploadedResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetLeaderboardScoreUploadedResult") as Object;
+		}
+		protected function getFindLeaderboardResult():String
+		{
+			return _ExtensionContext.call("AIRSteam_GetFindLeadboardResult") as String;
+		}
 		protected function getPublishWorkshopFileResult():String
 		{
 			return _ExtensionContext.call("AIRSteam_GetPublishWorkshopFileResult") as String;

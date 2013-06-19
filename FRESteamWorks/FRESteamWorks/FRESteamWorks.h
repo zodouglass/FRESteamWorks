@@ -40,7 +40,9 @@ enum ResponseTypes
 	RESPONSE_OnCommitPublishedFileUpdated,
 	RESPONSE_OnDeletePublishedFile,
 	RESPONSE_EnumerateUserPublishedFiles, 
-	RESPONSE_EnumerateUserSubscribedFiles
+	RESPONSE_EnumerateUserSubscribedFiles,
+	RESPONSE_LeaderboardFindResult,
+	RESPONSE_LeaderboardScoreUploaded
 };
 enum ResponseCodes
 {
@@ -87,6 +89,18 @@ public:
 	bool SetStat( const char* ID, float value );
 	bool StoreStats();
 	bool ResetAllStats( bool bAchievementsToo );
+
+	//leaderboards
+	SteamLeaderboard_t leaderboardFindResult;
+
+	void FindLeaderboard(const char* leaderboardName );
+	void OnFindLeaderboard(LeaderboardFindResult_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, LeaderboardFindResult_t> m_CallbackLeaderboardFind;
+
+	LeaderboardScoreUploaded_t *leaderboardScoreUploadedResult;
+	void UploadLeaderboardScore( SteamLeaderboard_t hSteamLeaderboard, ELeaderboardUploadScoreMethod eLeaderboardUploadScoreMethod, int32 nScore, const int32 *pScoreDetails, int cScoreDetailsCount );
+	void OnUploadLeaderboardScore(LeaderboardScoreUploaded_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, LeaderboardScoreUploaded_t> m_CallbackUploadLeaderboardScore;
 
 	//workshop
 	void FileShare( const char* fileName );
@@ -191,6 +205,11 @@ extern "C" {
 	FREObject AIRSteam_CommitPublishedFileUpdate(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_DeletePublishedFile(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetPublishWorkshopFileResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	//leaderboards
+	FREObject AIRSteam_FindLeadboard(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetFindLeadboardResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_UploadLeaderboardScore(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetLeaderboardScoreUploadedResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
 	FREObject UInt64ToFREObject( uint64 value);
 	uint64 FREObjectToUint64( FREObject valueString );
