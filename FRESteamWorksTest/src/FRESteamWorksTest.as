@@ -26,7 +26,7 @@ package
 	import flash.text.TextField;
 	import flash.utils.ByteArray;
 	
-	public class Main extends Sprite 
+	public class FRESteamWorksTest extends Sprite 
 	{
 		private var Steamworks:FRESteamWorks = new FRESteamWorks();
 		public var tf:TextField;
@@ -44,7 +44,9 @@ package
 		private var publishedFileDetails:Array; //result from batchGetPublishedFileDetails
 		private var ugcDownloadResult:UGCResult;
 		
-		public function Main():void 
+		private var leaderboardHandle:String;
+		
+		public function FRESteamWorksTest():void 
 		{
 			tf = new TextField();
 			tf.x = 210;
@@ -56,6 +58,11 @@ package
 			
 			addButton("Find Leaderboard", handleFindLeaderboard);
 			addButton("Submit Leaderboard Score", handleSubmitLeaderboardScore);
+			addButton("SteamUserStats()->DownloadLeaderboardEntries", handleDownloadLeaderboardEntries);
+			addButton("SteamUserStats()->GetLeaderboardName()", handleGetLeaderboardName);
+			addButton("SteamUserStats()->GetLeaderboardEntryCount()", handleGetLeaderboardEntryCount);
+			addButton("SteamUserStats()->GetLeaderboardSortMethod()", handleGetLeaderboardSortMethod);
+			addButton("SteamUserStats()->GetLeaderboardDisplayType()", handleGetLeaderboardDisplayType);
 			addButton("Toggle Achievement", handleWinAchievement);
 			addButton("Write Text to Cloud", handleFileWrite);
 			addButton("Write Image to Cloud", handleFileWriteImage);
@@ -140,8 +147,45 @@ package
 		}
 		
 		
-		private var leaderboardHandle:String;
 		
+		public function handleDownloadLeaderboardEntries(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				log("DownloadLeaderboardEntries");
+				if ( leaderboardHandle == null ){
+					log("You need a leaderboard handle to download the entires of a leaderboard!");
+					return;
+				}
+				
+				var k_ELeaderboardDataRequestGlobal:int = 0,
+					k_ELeaderboardDataRequestGlobalAroundUser:int = 1,
+					k_ELeaderboardDataRequestFriends:int = 2,
+					k_ELeaderboardDataRequestUsers:int = 3;
+					
+				var startRange:int = 0;
+				var endRange:int = 10;
+				
+				//async call to download leaderboard entries.  results are returned in the event data object from SteamConstants.RESPONSE_LeaderboardScoresDownloaded
+				Steamworks.downloadLeaderboardEntries(leaderboardHandle, k_ELeaderboardDataRequestGlobal, startRange, endRange );
+			}
+		}
+		public function handleGetLeaderboardName(e:Event = null):void
+		{
+			
+		}
+		public function handleGetLeaderboardEntryCount(e:Event = null):void
+		{
+			
+		}
+		public function handleGetLeaderboardSortMethod(e:Event = null):void
+		{
+			
+		}
+		public function handleGetLeaderboardDisplayType(e:Event = null):void
+		{
+			
+		}
 		public function handleSubmitLeaderboardScore(e:Event = null):void
 		{
 			if (Steamworks.isReady)
@@ -156,17 +200,20 @@ package
 					k_ELeaderboardUploadScoreMethodKeepBest:int = 1,	// Leaderboard will keep user's best score
 					k_ELeaderboardUploadScoreMethodForceUpdate:int = 2;	// Leaderboard will always replace score with specified
 				
-				Steamworks.uploadLeaderboardScore(leaderboardHandle, 250, k_ELeaderboardUploadScoreMethodKeepBest );
+				
+				var score:int = int(Math.random() * 1000);
+				Steamworks.uploadLeaderboardScore(leaderboardHandle, score, k_ELeaderboardUploadScoreMethodKeepBest );
 			}
 		}
 		
 		public function handleWinAchievement(e:Event = null):void
 		{
-			if(Steamworks.isReady){
-				if(!Steamworks.isAchievement("50_kills")) {
-					log("setAchievement('50_kills') == "+Steamworks.setAchievement("50_kills"));
+			if (Steamworks.isReady) {
+				var acheivement:String = "unbound";  //50_kills
+				if(!Steamworks.isAchievement(acheivement)) { 
+					log("setAchievement("+acheivement+") == "+Steamworks.setAchievement(acheivement));
 				} else {
-					log("clearAchievement('50_kills') == "+Steamworks.clearAchievement("50_kills"));
+					log("clearAchievement("+acheivement+") == "+Steamworks.clearAchievement(acheivement));
 				}
 			}
 		}
@@ -377,6 +424,18 @@ package
 						" score: " + leaderboardScoreUploaded.score + 
 						" rankNew:" + leaderboardScoreUploaded.globalRankNew + 
 						" rankPrevious:"+ leaderboardScoreUploaded.globalRankPrevious);
+					break;
+				case SteamConstants.RESPONSE_LeaderboardScoresDownloaded:
+					log("RESPONSE_LeaderboardScoresDownloaded: " + e.response + " " + SteamResult.getMessage(e.response) + " " + e.data );
+					if ( e.data && e.data.entries )
+					{
+						var entries:Array = e.data.entries as Array;
+						for ( var i:int = 0; i < entries.length; i++ )
+						{
+							var entry:Object = entries[i];
+							log(entry.globalRank + ": " + entry.personaName + " " + entry.score );
+						}
+					}
 					break;
 				case SteamConstants.RESPONSE_OnUserStatsStored:
 					log("RESPONSE_OnUserStatsStored: "+e.response + " " + SteamResult.getMessage(e.response));

@@ -42,7 +42,8 @@ enum ResponseTypes
 	RESPONSE_EnumerateUserPublishedFiles, 
 	RESPONSE_EnumerateUserSubscribedFiles,
 	RESPONSE_LeaderboardFindResult,
-	RESPONSE_LeaderboardScoreUploaded
+	RESPONSE_LeaderboardScoreUploaded,
+	RESPONSE_LeaderboardScoresDownloaded
 };
 enum ResponseCodes
 {
@@ -101,6 +102,11 @@ public:
 	void UploadLeaderboardScore( SteamLeaderboard_t hSteamLeaderboard, ELeaderboardUploadScoreMethod eLeaderboardUploadScoreMethod, int32 nScore, const int32 *pScoreDetails, int cScoreDetailsCount );
 	void OnUploadLeaderboardScore(LeaderboardScoreUploaded_t *pCallback, bool bIOFailure );
 	CCallResult<CSteam, LeaderboardScoreUploaded_t> m_CallbackUploadLeaderboardScore;
+	
+	LeaderboardScoresDownloaded_t *leaderboardScoresDownloadedResult;
+	void DownloadLeaderboardEntries( SteamLeaderboard_t hSteamLeaderboard, ELeaderboardDataRequest eLeaderboardDataRequest, int nRangeStart, int nRangeEnd );
+	void OnLeaderboardScoresDownloaded(LeaderboardScoresDownloaded_t *pCallback, bool bIOFailure );
+	CCallResult<CSteam, LeaderboardScoresDownloaded_t> m_CallbackDownloadLeaderboardEntries;
 
 	//workshop
 	void FileShare( const char* fileName );
@@ -210,6 +216,8 @@ extern "C" {
 	FREObject AIRSteam_GetFindLeadboardResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_UploadLeaderboardScore(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetLeaderboardScoreUploadedResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_DownloadLeaderboardEntries(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetDownloadedLeaderboardEntryResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
 	FREObject UInt64ToFREObject( uint64 value);
 	uint64 FREObjectToUint64( FREObject valueString );

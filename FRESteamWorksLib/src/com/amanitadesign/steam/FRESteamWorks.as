@@ -33,6 +33,9 @@ package com.amanitadesign.steam
 			trace("handleStatusEvent: "+req_type+" "+response + " " + SteamResult.getMessage(response));
 			switch(req_type)
 			{
+				case SteamConstants.RESPONSE_LeaderboardScoresDownloaded:
+					sEvent.data = this.getDownloadedLeaderboardEntryResult();
+					break;
 				case SteamConstants.RESPONSE_LeaderboardFindResult:
 					sEvent.data = this.getFindLeaderboardResult();
 					break;
@@ -104,6 +107,8 @@ package com.amanitadesign.steam
 			return isReady;
 		}
 		
+		//leaderboards
+		
 		public function findLeaderboard(leaderboardName:String):Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_FindLeadboard", leaderboardName) as Boolean;
@@ -116,6 +121,23 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_UploadLeaderboardScore", leaderboardHandle, score, leaderboardUploadScoreMethod, scoreDetails, scoreDetails.length) as Boolean;
 		}
 		
+		/**
+			* Asks the Steam back-end for a set of rows in the leaderboard.
+			* This call is asynchronous, with the result returned in event data property
+			* You can ask for more entries than exist, and it will return as many as do exist.
+		 * @param	hSteamLeaderboard Steam leaderboard handle
+		 * @param	eLeaderboardDataRequest Type of request data. 0: Global, 1: GlobalAroundUser, 2: Friends, 3: Users. 
+		 * @param	nRangeStart The start range of the leaderboard.  Example,  you can display the top 10 on a leaderboard for your game by setting start to 1 and end to 10 (with the request type as Global).  If you are requesting entries around a user, start range can be negative to get entries before the user. For example, if the current user is #5 on a given leaderboard, setting start to -2 and end to 2 will return 5 entries: 3 through 7. If there are not enough entries in the leaderboard before or after the user's entry, Steam will adjust the range to try to return the number of entries requested. For example, if the user is #1 on the leaderboard, start is set to -2, and end is set to 2, Steam will return the first 5 entries in the leaderboard.
+		 * @param	nRangeEnd
+		 * @return
+		 */
+		public function downloadLeaderboardEntries(hSteamLeaderboard:String, eLeaderboardDataRequest:int=0, nRangeStart:int=0, nRangeEnd:int=10):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_DownloadLeaderboardEntries", hSteamLeaderboard, eLeaderboardDataRequest, nRangeStart, nRangeEnd) as Boolean;
+		}
+		
+		
+		//stats
 		public function requestStats():Boolean
 		{
 			return _ExtensionContext.call("AIRSteam_RequestStats") as Boolean;
@@ -172,6 +194,8 @@ package com.amanitadesign.steam
 		}
 		
 		
+		//local file storage
+		
 		public function getFileCount():int
 		{
 			return _ExtensionContext.call("AIRSteam_GetFileCount") as int;
@@ -201,6 +225,8 @@ package com.amanitadesign.steam
 		{
 			return _ExtensionContext.call("AIRSteam_FileDelete", fileName) as Boolean;
 		}
+		
+		//cloud storage
 		
 		public function isCloudEnabledForApp():Boolean
 		{
@@ -328,6 +354,11 @@ package com.amanitadesign.steam
 		protected function getLeaderboardScoreUploadedResult():Object
 		{
 			return _ExtensionContext.call("AIRSteam_GetLeaderboardScoreUploadedResult") as Object;
+		}
+		
+		protected function getDownloadedLeaderboardEntryResult():Object
+		{
+			return _ExtensionContext.call("AIRSteam_GetDownloadedLeaderboardEntryResult") as Object;
 		}
 		protected function getFindLeaderboardResult():String
 		{
