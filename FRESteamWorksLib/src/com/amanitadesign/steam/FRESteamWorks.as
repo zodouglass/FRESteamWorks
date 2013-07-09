@@ -30,7 +30,7 @@ package com.amanitadesign.steam
 			var req_type:int = new int(event.code);
 			var response:int = new int(event.level);
 			var sEvent:SteamEvent = new SteamEvent(SteamEvent.STEAM_RESPONSE, req_type, response);
-			trace("handleStatusEvent: "+req_type+" "+response + " " + SteamResult.getMessage(response));
+			//trace("handleStatusEvent: "+req_type+" "+response + " " + SteamResult.getMessage(response));
 			switch(req_type)
 			{
 				case SteamConstants.RESPONSE_LeaderboardScoresDownloaded:
