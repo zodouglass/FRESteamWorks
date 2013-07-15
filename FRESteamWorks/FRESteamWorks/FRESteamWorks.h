@@ -218,6 +218,8 @@ extern "C" {
 	FREObject AIRSteam_GetLeaderboardScoreUploadedResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_DownloadLeaderboardEntries(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_GetDownloadedLeaderboardEntryResult(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_IsSubscribedApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_IsDlcInstalled(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
 	FREObject UInt64ToFREObject( uint64 value);
 	uint64 FREObjectToUint64( FREObject valueString );

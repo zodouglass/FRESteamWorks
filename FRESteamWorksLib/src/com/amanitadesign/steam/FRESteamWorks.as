@@ -226,6 +226,16 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_FileDelete", fileName) as Boolean;
 		}
 		
+		//dlc
+		public function isSubscribedApp(dlcAppId:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_IsSubscribedApp", dlcAppId) as Boolean;
+		}
+		public function isDlcInstalled(dlcAppId:String):Boolean
+		{
+			return _ExtensionContext.call("AIRSteam_IsDlcInstalled", dlcAppId) as Boolean;
+		}
+		
 		//cloud storage
 		
 		public function isCloudEnabledForApp():Boolean

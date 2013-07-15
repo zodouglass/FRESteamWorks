@@ -798,6 +798,39 @@ extern "C" {
 		return result;
 	}
 
+	//DLC
+	
+	FREObject AIRSteam_IsSubscribedApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+
+		if (g_Steam && argc==1 )
+		{
+			uint64 dlcAppId = FREObjectToUint64(argv[0]);
+
+			bool isSubscribed = SteamApps()->BIsSubscribedApp( (AppId_t)dlcAppId );
+
+			FRENewObjectFromBool(isSubscribed, &result);
+		}
+
+		return result;
+	}
+	
+	FREObject AIRSteam_IsDlcInstalled(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
+	{
+		FREObject result;
+		
+		if (g_Steam && argc==1 )
+		{
+			uint64 dlcAppId = FREObjectToUint64(argv[0]);
+
+			bool isDlcInstalled = SteamApps()->BIsDlcInstalled( (AppId_t)dlcAppId );
+
+			FRENewObjectFromBool(isDlcInstalled, &result);
+		}
+		return result;
+	}
+
 
 	//Steam Workshop
 	
@@ -1454,7 +1487,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 49;
+        *numFunctions = 51;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -1651,10 +1684,19 @@ extern "C" {
 		func[47].name = (const uint8_t*) "AIRSteam_DownloadLeaderboardEntries";
         func[47].functionData = NULL;
 		func[47].function = &AIRSteam_DownloadLeaderboardEntries;
-
+		
 		func[48].name = (const uint8_t*) "AIRSteam_GetDownloadedLeaderboardEntryResult";
         func[48].functionData = NULL;
 		func[48].function = &AIRSteam_GetDownloadedLeaderboardEntryResult;
+		
+		func[49].name = (const uint8_t*) "AIRSteam_IsSubscribedApp";
+        func[49].functionData = NULL;
+		func[49].function = &AIRSteam_IsSubscribedApp;
+		
+		func[50].name = (const uint8_t*) "AIRSteam_IsDlcInstalled";
+        func[50].functionData = NULL;
+		func[50].function = &AIRSteam_IsDlcInstalled;
+
         *functions = func;
     }
     

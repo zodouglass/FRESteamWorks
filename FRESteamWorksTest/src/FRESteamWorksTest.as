@@ -96,6 +96,8 @@ package
 			//	log("setCloudEnabledForApp(false) == "+Steamworks.setCloudEnabledForApp(false) );
 				//log("setCloudEnabledForApp(true) == "+Steamworks.setCloudEnabledForApp(true) );
 				log("isCloudEnabledForApp() == "+Steamworks.isCloudEnabledForApp() );
+				log("isSubscribedApp() == "+Steamworks.isSubscribedApp("238570") );
+				log("isDlcInstalled() == "+Steamworks.isDlcInstalled("238570") );
 				//log("getFileCount() == "+Steamworks.getFileCount() );
 			//	log("fileExists('test.txt') == "+Steamworks.fileExists('test.txt') );
 
