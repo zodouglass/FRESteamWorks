@@ -221,6 +221,11 @@ extern "C" {
 	FREObject AIRSteam_IsSubscribedApp(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 	FREObject AIRSteam_IsDlcInstalled(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
 
+	//friends
+	FREObject AIRSteam_GetFriendCount(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetFriendByIndex(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+	FREObject AIRSteam_GetFriendPersonaName(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]);
+
 	FREObject UInt64ToFREObject( uint64 value);
 	uint64 FREObjectToUint64( FREObject valueString );
 

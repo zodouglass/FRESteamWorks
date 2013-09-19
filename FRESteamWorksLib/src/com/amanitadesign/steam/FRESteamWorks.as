@@ -360,6 +360,20 @@ package com.amanitadesign.steam
 			return _ExtensionContext.call("AIRSteam_DeletePublishedFile", publishFileId) as Boolean; 
 		}
 		
+		//friends
+		public function getFriendCount():int
+		{
+			return _ExtensionContext.call("AIRSteam_GetFriendCount") as int;
+		}
+		public function getFriendByIndex(friendIndex:int):String
+		{
+			return _ExtensionContext.call("AIRSteam_GetFriendByIndex",friendIndex) as String;
+		}
+		public function getFriendPersonaName(friendID:String):String
+		{
+			return _ExtensionContext.call("AIRSteam_GetFriendPersonaName",friendID) as String;
+		}
+		
 		//protected functions to get the result of async call results
 		protected function getLeaderboardScoreUploadedResult():Object
 		{

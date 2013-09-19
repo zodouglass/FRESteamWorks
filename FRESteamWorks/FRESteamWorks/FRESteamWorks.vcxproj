@@ -71,7 +71,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;AIRICUEXTENSION_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\sdk\flex_sdk_4.6.0.23201B_air_3.2\include;C:\sdk\steam\1.22\public\steam</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\sdk\flex_sdk_4.6.0.23201B_air_3.2\include;C:\sdk\steam\1.23a\public\steam</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -79,7 +79,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\sdk\flex_sdk_4.6.0.23201B_air_3.2\lib\win;C:\sdk\steam\1.22\redistributable_bin;C:\sdk\steam\1.22\public\steam\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\sdk\flex_sdk_4.6.0.23201B_air_3.2\lib\win;C:\sdk\steam\1.23a\redistributable_bin;C:\sdk\steam\1.23a\public\steam\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>steam_api.lib;FlashRuntimeExtensions.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>

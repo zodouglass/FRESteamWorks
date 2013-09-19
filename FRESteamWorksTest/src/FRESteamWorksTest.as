@@ -56,13 +56,16 @@ package
 
 			//tf.addEventListener(MouseEvent.MOUSE_DOWN, onClick);
 			
+			addButton("GetFriendCount", handleGetFriendCount);
+			addButton("GetFriendByIndex(0)", handleGetFriendByIndex);
+			addButton("GetFriendPersonaName()", handleGetFriendPersonaName);
 			addButton("Find Leaderboard", handleFindLeaderboard);
 			addButton("Submit Leaderboard Score", handleSubmitLeaderboardScore);
 			addButton("SteamUserStats()->DownloadLeaderboardEntries", handleDownloadLeaderboardEntries);
-			addButton("SteamUserStats()->GetLeaderboardName()", handleGetLeaderboardName);
-			addButton("SteamUserStats()->GetLeaderboardEntryCount()", handleGetLeaderboardEntryCount);
-			addButton("SteamUserStats()->GetLeaderboardSortMethod()", handleGetLeaderboardSortMethod);
-			addButton("SteamUserStats()->GetLeaderboardDisplayType()", handleGetLeaderboardDisplayType);
+			//addButton("SteamUserStats()->GetLeaderboardName()", handleGetLeaderboardName);
+			//addButton("SteamUserStats()->GetLeaderboardEntryCount()", handleGetLeaderboardEntryCount);
+			//addButton("SteamUserStats()->GetLeaderboardSortMethod()", handleGetLeaderboardSortMethod);
+			//addButton("SteamUserStats()->GetLeaderboardDisplayType()", handleGetLeaderboardDisplayType);
 			addButton("Toggle Achievement", handleWinAchievement);
 			addButton("Write Text to Cloud", handleFileWrite);
 			addButton("Write Image to Cloud", handleFileWriteImage);
@@ -140,6 +143,42 @@ package
 			return result;
 		}
 		
+		public function handleGetFriendCount(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				friendCount = Steamworks.getFriendCount()
+				log("GetFriendCount() == " + friendCount );
+			}
+		}
+		private var friendCount:int;
+		public function handleGetFriendByIndex(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				var friendIndex:int = Math.floor( Math.random() * friendCount );
+				friendID = Steamworks.getFriendByIndex(friendIndex)
+				log("GetFriendByIndex("+friendIndex+") == " + friendID );
+			}
+		}
+		private var friendID:String;
+		public function handleGetFriendPersonaName(e:Event = null):void
+		{
+			if (Steamworks.isReady)
+			{
+				if ( friendID )
+				{
+					log("GetFriendPersonaName("+friendID+") == " + Steamworks.getFriendPersonaName(friendID) );
+				}
+				else
+				{
+					log("Must get the friendByIndex first");
+				}
+				
+			}
+		}
+		
+		//leaderboards
 		public function handleFindLeaderboard(e:Event = null):void
 		{
 			if (Steamworks.isReady)

@@ -1460,6 +1460,52 @@ extern "C" {
 			FRENewObjectFromBool(false, &result);
 		return result;
 	}
+
+	//friends
+	FREObject AIRSteam_GetFriendCount(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		//todo - support other flags
+		int friendCount = SteamFriends()->GetFriendCount(k_EFriendFlagImmediate);
+		FRENewObjectFromInt32(friendCount, &result);
+	
+		return result;
+	}
+
+	FREObject AIRSteam_GetFriendByIndex(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+		uint32 friendIndex = 0;
+
+		if (argc == 1)
+		{
+			if( FREGetObjectAsUint32(argv[0], &friendIndex) == FRE_OK ) 
+			{
+				//todo - support other flags
+				CSteamID friendId = SteamFriends()->GetFriendByIndex(friendIndex, k_EFriendFlagImmediate);
+				result = UInt64ToFREObject( friendId.ConvertToUint64() );
+			}
+		} 
+
+		return result;
+	}
+
+	FREObject AIRSteam_GetFriendPersonaName(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[]) {
+		FREObject result;
+		
+
+		uint64 friendID = 0;
+
+		if (argc==1	 ) 
+		{
+			friendID = FREObjectToUint64(argv[0]);
+
+			const char *friendName = SteamFriends()->GetFriendPersonaName(CSteamID(friendID) ); 
+			uint32_t len = -1;
+			FRENewObjectFromUTF8(len, (const uint8_t *)friendName, &result);
+		} 
+		
+		return result;
+	}
 	
 	//============================
 
@@ -1487,7 +1533,7 @@ extern "C" {
                             uint32_t* numFunctions, const FRENamedFunction** functions) {
         AIRContext = ctx;
         
-        *numFunctions = 51;
+        *numFunctions = 54;
         
         FRENamedFunction* func = (FRENamedFunction*) malloc(sizeof(FRENamedFunction) * (*numFunctions));
         
@@ -1696,6 +1742,18 @@ extern "C" {
 		func[50].name = (const uint8_t*) "AIRSteam_IsDlcInstalled";
         func[50].functionData = NULL;
 		func[50].function = &AIRSteam_IsDlcInstalled;
+
+		func[51].name = (const uint8_t*) "AIRSteam_GetFriendCount";
+        func[51].functionData = NULL;
+		func[51].function = &AIRSteam_GetFriendCount;
+		
+		func[52].name = (const uint8_t*) "AIRSteam_GetFriendByIndex";
+        func[52].functionData = NULL;
+		func[52].function = &AIRSteam_GetFriendByIndex;
+		
+		func[53].name = (const uint8_t*) "AIRSteam_GetFriendPersonaName";
+        func[53].functionData = NULL;
+		func[53].function = &AIRSteam_GetFriendPersonaName;
 
         *functions = func;
     }
